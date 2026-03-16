@@ -1,0 +1,88 @@
+.carousel-item img {
+  height: 480px;
+  width: 100%;
+  object-fit: cover;
+  animation: kenburns 12s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes kenburns {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --- Fade Carousel --- */
+.carousel-fade .carousel-item {
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+
+.carousel-fade .carousel-item.active {
+  opacity: 1;
+}
+
+/* --- Overlay --- */
+.carousel-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.1));
+  padding: 60px;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+/* --- Text Animation --- */
+.overlay-text {
+  max-width: 520px;
+  opacity: 0;
+  transform: translateY(25px);
+  animation: fadeUp 1.2s ease-out forwards;
+  animation-delay: 0.3s;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Thicker primary top border for navbar */
+.custom-navbar-top {
+  border-top: 3px solid #88c83f; /* Bootstrap primary color */
+}
+
+/* Add some space so page content doesn't hide behind navbar */
+body {
+  padding-top: 40px; /* adjust to navbar height */
+}
+
+/* Make navbar fixed and visible initially */
+#mainNavbar {
+  position: fixed;
+  top: 0; /* visible initially */
+  left: 0;
+  width: 100%;
+  z-index: 1030;
+  transition: top 0.4s ease, box-shadow 0.3s ease;
+}
+
+/* After page scroll, add shadow or slide slightly for effect */
+#mainNavbar.scrolled {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
