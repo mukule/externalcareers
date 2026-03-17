@@ -43,9 +43,7 @@ class UserEducationModel extends Model
         return $data;
     }
 
-    /**
-     * Get a single education record by UUID
-     */
+  
     public function getByUuid(string $uuid): ?array
     {
         return $this->where('uuid', $uuid)->first();
