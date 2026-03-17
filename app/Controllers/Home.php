@@ -6,7 +6,8 @@ use App\Models\UserModel;
 use App\Models\JobModel;
 use App\Models\JobTypeModel;
 use App\Models\JobApplicationModel;
-
+use App\Models\FieldOfStudyModel;
+use App\Models\JobDisciplineModel;
 
 class Home extends BaseController
 {
@@ -14,12 +15,18 @@ class Home extends BaseController
     protected $jobModel;
     protected $jobTypeModel;
     protected $jobApplicationModel;
+    protected $fieldOfStudyModel;
+    protected $jobDisciplineModel;
+
+
     public function __construct()
     {
         $this->userModel = new UserModel();
         $this->jobModel = new \App\Models\JobModel();
         $this->jobTypeModel = new JobTypeModel();
         $this->jobApplicationModel = new JobApplicationModel();
+         $this->fieldOfStudyModel   = new FieldOfStudyModel();
+        $this->jobDisciplineModel   = new JobDisciplineModel();
     }
 
    
@@ -63,10 +70,16 @@ public function jobDetail($uuid = null)
         return redirect()->to('/')->with('error', 'Job not specified.');
     }
 
+    // Fetch job with related info
     $job = $this->jobModel
-        ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name')
+        ->select('jobs.*, 
+                  job_types.display_name AS job_type_name, 
+                  job_types.uuid AS job_type_uuid,
+                  education_levels.name AS education_name,
+                  job_disciplines.name AS discipline_name')
         ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
         ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
+        ->join('job_disciplines', 'job_disciplines.id = jobs.discipline_id', 'left')
         ->where('jobs.uuid', $uuid)
         ->where('jobs.active', 1)
         ->first();
@@ -75,7 +88,7 @@ public function jobDetail($uuid = null)
         return redirect()->to('/')->with('error', 'Job not found or inactive.');
     }
 
-    
+    // Determine job status
     $today = date('Y-m-d');
     if ($today < $job['date_open']) {
         $job['status'] = 'Upcoming';
@@ -85,13 +98,65 @@ public function jobDetail($uuid = null)
         $job['status'] = 'Open';
     }
 
-    
+    // Fetch specialities / fields for this job
+    $specialityModel = new \App\Models\JobSpecialityModel();
+    $job['specialities'] = $specialityModel->getByJob($job['id']); // returns array of field objects
+
+    // Fetch application requirements
     $requirements = get_job_application_requirements($job['id']);
 
+    // Pass all data to the view
     return view('pages/job_detail', [
         'title'        => $job['name'] . ' - Job Details',
         'job'          => $job,
-        'requirements' => $requirements['requirements'] ?? []  
+        'requirements' => $requirements['requirements'] ?? [],
+    ]);
+}
+
+
+public function jobsByType($jobTypeUuid = null)
+{
+    if (!$jobTypeUuid) {
+        return redirect()->to('/')->with('error', 'Job type not specified.');
+    }
+
+    // Get job type
+    $jobType = $this->jobTypeModel
+                    ->where('uuid', $jobTypeUuid)
+                    ->where('active', 1)
+                    ->first();
+
+    if (!$jobType) {
+        return redirect()->to('/')->with('error', 'Job type not found.');
+    }
+
+    
+    $filters = [
+        'name'          => $this->request->getGet('name'),
+        'reference_no'  => $this->request->getGet('reference_no'),
+        'discipline_id' => $this->request->getGet('discipline_id'),
+        'field_id'      => $this->request->getGet('field_id'),
+    ];
+
+    // Fetch filtered jobs
+    $openJobs = $this->jobModel->getOpenJobsByType($jobType['id'], $filters);
+
+   
+    $disciplines = $this->jobDisciplineModel
+                        ->where('active', 1)
+                        ->findAll();
+
+    $fieldsOfStudy = $this->fieldOfStudyModel
+                          ->where('active', 1)
+                          ->findAll();
+
+    return view('pages/job_types', [
+        'title'        => $jobType['display_name'] . ' Jobs',
+        'jobType'      => $jobType,
+        'jobs'         => $openJobs,
+        'disciplines'  => $disciplines,
+        'fieldsOfStudy'=> $fieldsOfStudy,
+        'filters'      => $filters, 
     ]);
 }
 

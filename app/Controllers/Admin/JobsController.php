@@ -7,7 +7,8 @@ use App\Models\JobModel;
 use App\Models\JobTypeModel;
 use App\Models\EducationLevelModel;
 use App\Models\JobSpecialityModel;
-use App\Models\FieldOfStudyModel; 
+use App\Models\FieldOfStudyModel;
+use App\Models\JobDisciplineModel;
 
 class JobsController extends BaseController
 {
@@ -16,11 +17,13 @@ class JobsController extends BaseController
     protected $educationLevel;
     protected $jobSpeciality;
     protected $fieldsOfStudy;
+    protected $jobDiscipline;
 
     protected $validationRules = [
         'name'                      => 'required|string|max_length[255]',
         'reference_no'              => 'required|string|max_length[100]',
         'job_type_id'               => 'required|integer',
+        'discipline_id'             => 'required|integer', // job discipline
         'job_summary'               => 'required|string',
         'job_description'           => 'required|string',
         'posts_needed'              => 'required|integer',
@@ -29,13 +32,9 @@ class JobsController extends BaseController
         'date_close'                => 'required|valid_date',
         'min_education_level_id'    => 'required|integer',
         'work_experience_years'     => 'required|decimal',
-
-        // Optional boolean fields
         'certification_required'    => 'permit_empty|in_list[0,1]',
         'membership_required'       => 'permit_empty|in_list[0,1]',
         'higher_education_required' => 'permit_empty|in_list[0,1]',
-
-        // Fields of study (array of IDs)
         'fields_of_study'           => 'required|is_array'
     ];
 
@@ -46,52 +45,59 @@ class JobsController extends BaseController
         $this->educationLevel  = new EducationLevelModel();
         $this->jobSpeciality   = new JobSpecialityModel();
         $this->fieldsOfStudy   = new FieldOfStudyModel();
+        $this->jobDiscipline   = new JobDisciplineModel();
     }
 
+    /** List all jobs */
+    public function index()
+    {
+        $jobs = $this->jobModel
+            ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name, jobs.discipline_id')
+            ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
+            ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
+            ->orderBy('jobs.created_at', 'DESC')
+            ->findAll();
 
-    /** List all job vacancies */
-public function index()
-{
-    $jobs = $this->jobModel
-                 ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name')
-                 ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
-                 ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
-                 ->orderBy('jobs.created_at', 'DESC')
-                 ->findAll();
-
-    $today = date('Y-m-d');
-
-    foreach ($jobs as &$job) {
-        // Compute job status
-        if ($today < $job['date_open']) {
-            $job['status'] = 'Upcoming';
-        } elseif ($today > $job['date_close']) {
-            $job['status'] = 'Closed';
-        } else {
-            $job['status'] = 'Open';
+        $today = date('Y-m-d');
+        foreach ($jobs as &$job) {
+            $job['status'] = ($today < $job['date_open']) ? 'Upcoming' : (($today > $job['date_close']) ? 'Closed' : 'Open');
+            $job['fields_of_study'] = $this->jobSpeciality->getByJob($job['id']);
         }
 
-        // Get disciplines for this job
-        $job['fields_of_study'] = $this->jobSpeciality->getByJob($job['id']);
+        return view('admin/jobs', [
+            'title' => 'Job Vacancies',
+            'jobs'  => $jobs
+        ]);
     }
 
-    return view('admin/jobs', [
-        'title' => 'Job Vacancies',
-        'jobs'  => $jobs
-    ]);
-}
 
+   
+    public function toggle($id)
+    {
+        $job = $this->jobModel->find($id);
 
+        if (!$job) {
+            return redirect()->back()->with('error', 'Job not found.');
+        }
+
+        // Toggle the active status
+        $newStatus = $job['active'] ? 0 : 1;
+        $this->jobModel->update($id, ['active' => $newStatus]);
+
+        $message = $newStatus ? 'Job published successfully.' : 'Job unpublished successfully.';
+        return redirect()->back()->with('success', $message);
+    }
 
     /** Show form for creating a new job */
     public function create()
     {
         return view('admin/create_job', [
-            'title'           => 'Create Job Vacancy',
-            'action'          => base_url('admin/jobs/store'),
-            'jobTypes'        => $this->jobType->where('active', 1)->findAll(),
-            'educationLevels' => $this->educationLevel->where('active', 1)->findAll(),
-            'fieldsOfStudy'   => $this->fieldsOfStudy->where('active', 1)->findAll(),
+            'title'            => 'Create Job Vacancy',
+            'action'           => base_url('admin/jobs/store'),
+            'jobTypes'         => $this->jobType->where('active', 1)->findAll(),
+            'educationLevels'  => $this->educationLevel->where('active', 1)->findAll(),
+            'fieldsOfStudy'    => $this->fieldsOfStudy->where('active', 1)->findAll(),
+            'jobDisciplines'   => $this->jobDiscipline->where('active', 1)->findAll(),
         ]);
     }
 
@@ -108,17 +114,16 @@ public function index()
             return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
         }
 
-        // Boolean fields default to 0
         $data['certification_required']    = $data['certification_required'] ?? 0;
         $data['membership_required']       = $data['membership_required'] ?? 0;
         $data['higher_education_required'] = $data['higher_education_required'] ?? 0;
-
-        $data['active']     = 0;
-        $data['created_by'] = session()->get('user_id');
+        $data['discipline_id']             = $data['discipline_id'] ?? null;
+        $data['active']                    = 0;
+        $data['created_by']                = session()->get('user_id');
 
         $jobId = $this->jobModel->insert($data);
 
-        // Save fields of study
+        // Assign fields of study
         $fieldIds = $data['fields_of_study'] ?? [];
         if (!empty($fieldIds)) {
             $this->jobSpeciality->assignFields($jobId, $fieldIds);
@@ -135,17 +140,17 @@ public function index()
             return redirect()->back()->with('error', 'Job not found.');
         }
 
-        // Get selected fields for this job
         $selectedFields = array_column($this->jobSpeciality->getByJob($job['id']), 'id');
 
         return view('admin/create_job', [
-            'title'           => 'Edit Job Vacancy',
-            'action'          => base_url('admin/jobs/update/' . $uuid),
-            'job'             => $job,
-            'jobTypes'        => $this->jobType->where('active', 1)->findAll(),
-            'educationLevels' => $this->educationLevel->where('active', 1)->findAll(),
-            'fieldsOfStudy'   => $this->fieldsOfStudy->where('active', 1)->findAll(),
-            'jobFields'  => $selectedFields
+            'title'            => 'Edit Job Vacancy',
+            'action'           => base_url('admin/jobs/update/' . $uuid),
+            'job'              => $job,
+            'jobTypes'         => $this->jobType->where('active', 1)->findAll(),
+            'educationLevels'  => $this->educationLevel->where('active', 1)->findAll(),
+            'fieldsOfStudy'    => $this->fieldsOfStudy->where('active', 1)->findAll(),
+            'jobDisciplines'   => $this->jobDiscipline->where('active', 1)->findAll(),
+            'jobFields'        => $selectedFields
         ]);
     }
 
@@ -160,7 +165,6 @@ public function index()
         $data = $this->request->getPost();
         $data['reference_no'] = trim($data['reference_no']);
 
-        // Validation: unique reference_no ignoring current job
         $rules = $this->validationRules;
         $rules['reference_no'] = 'required|string|max_length[100]|is_unique[jobs.reference_no,id,' . $job['id'] . ']';
 
@@ -171,6 +175,7 @@ public function index()
         $data['certification_required']    = $data['certification_required'] ?? 0;
         $data['membership_required']       = $data['membership_required'] ?? 0;
         $data['higher_education_required'] = $data['higher_education_required'] ?? 0;
+        $data['discipline_id']             = $data['discipline_id'] ?? null;
 
         $this->jobModel->update($job['id'], $data);
 
@@ -185,27 +190,19 @@ public function index()
     public function show($uuid)
     {
         $job = $this->jobModel
-                    ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name')
-                    ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
-                    ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
-                    ->where('jobs.uuid', $uuid)
-                    ->first();
+            ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name, jobs.discipline_id')
+            ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
+            ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
+            ->where('jobs.uuid', $uuid)
+            ->first();
 
         if (!$job) {
             return redirect()->back()->with('error', 'Job not found.');
         }
 
-        // Compute status
         $today = date('Y-m-d');
-        if ($today < $job['date_open']) {
-            $job['status'] = 'Upcoming';
-        } elseif ($today > $job['date_close']) {
-            $job['status'] = 'Closed';
-        } else {
-            $job['status'] = 'Open';
-        }
+        $job['status'] = ($today < $job['date_open']) ? 'Upcoming' : (($today > $job['date_close']) ? 'Closed' : 'Open');
 
-        // Get job disciplines
         $job['fields_of_study'] = $this->jobSpeciality->getByJob($job['id']);
 
         return view('admin/job_detail', [

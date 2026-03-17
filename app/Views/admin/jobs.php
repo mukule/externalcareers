@@ -63,7 +63,7 @@
 
                                    <td class="text-center">
 
-                                        <!-- PUBLISH / UNPUBLISH TOGGLER -->
+                                        
                                         <?php if ($job['active'] == 1): ?>
                                             <a href="<?= base_url('admin/jobs/toggle/' . $job['uuid']) ?>"
                                             class="btn btn-sm btn-outline-primary"
@@ -74,7 +74,7 @@
                                                 <i class="fas fa-eye-slash"></i>
                                             </a>
                                         <?php else: ?>
-                                            <a href="<?= base_url('admin/jobs/toggle/' . $job['uuid']) ?>"
+                                            <a href="<?= base_url('admin/jobs/toggle/' . $job['id']) ?>"
                                             class="btn btn-sm btn-outline-secondary"
                                             data-bs-toggle="tooltip" 
                                             data-bs-placement="top" 

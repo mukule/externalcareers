@@ -2,11 +2,33 @@
 <?= $this->section('content') ?>
 
 <div class="container py-5 mt-4">
+
+    <!-- ================= FULL-WIDTH BREADCRUMB ROW ================= -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-white rounded shadow-sm p-4 mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="<?= base_url('/') ?>">Home</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="<?= base_url('job_type/' . ($job['job_type_uuid'] ?? '')) ?>">
+                            <?= esc($job['job_type_name'] ?? 'Jobs') ?>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <?= esc($job['name']) ?> - <?= esc($job['reference_no']) ?>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- ================= MAIN CONTENT ROW ================= -->
     <div class="row g-4">
 
         <!-- ================= LEFT COLUMN ================= -->
         <div class="col-lg-8">
-
             <div class="card shadow-sm border-0">
                 <div class="card-body p-4">
 
@@ -26,19 +48,21 @@
                             <strong>Close:</strong> <?= esc($job['date_close']) ?>
                         </div>
                         <div><strong>Status:</strong> <?= esc($job['status']) ?></div>
+                        <?php if(!empty($job['discipline_name'])): ?>
+                            <div><strong>Discipline:</strong> <?= esc($job['discipline_name']) ?></div>
+                        <?php endif; ?>
+                        <?php if(!empty($job['specialities'])): ?>
+                            <div><strong>Field(s) of Study:</strong> <?= implode(', ', array_column($job['specialities'], 'name')) ?></div>
+                        <?php endif; ?>
                     </div>
 
                     <hr>
 
                     <h5 class="fw-semibold">Job Summary</h5>
-                    <div class="mb-4">
-                        <?= $job['job_summary'] ?>
-                    </div>
+                    <div class="mb-4"><?= $job['job_summary'] ?></div>
 
                     <h5 class="fw-semibold">Job Description</h5>
-                    <div class="mb-4">
-                        <?= $job['job_description'] ?>
-                    </div>
+                    <div class="mb-4"><?= $job['job_description'] ?></div>
 
                     <h5 class="fw-semibold">Requirements</h5>
                     <ul class="mb-4">
@@ -60,7 +84,6 @@
 
                     <?php
                         $isLoggedIn = !empty($user);
-
                         $allMet = true;
                         foreach ($requirements as $req) {
                             if (empty($req['met'])) {
@@ -71,15 +94,11 @@
                     ?>
 
                     <!-- ================= APPLY / LOGIN BUTTON ================= -->
-
                     <?php if (!$isLoggedIn): ?>
-
-                        <a href="<?= base_url('login') ?>" class="btn btn-outline-primary">
+                        <a href="#" class="btn btn-outline-primary">
                             Login to Apply
                         </a>
-
                     <?php else: ?>
-
                         <button 
                             type="button"
                             class="btn btn-primary"
@@ -95,7 +114,6 @@
                                 Please complete all required profile sections before applying.
                             </p>
                         <?php endif; ?>
-
                     <?php endif; ?>
 
                 </div>
@@ -104,7 +122,6 @@
 
         <!-- ================= RIGHT COLUMN ================= -->
         <div class="col-lg-4">
-
             <div class="card shadow-sm border-0 p-3">
                 <div class="card-header bg-white fw-semibold">
                     Application Requirements
@@ -130,7 +147,6 @@
                         </li>
                     <?php endif; ?>
                 </ul>
-
             </div>
         </div>
 

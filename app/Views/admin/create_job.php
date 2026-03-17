@@ -4,9 +4,9 @@
 <div class="container-fluid px-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mt-4">
-        <h1 class="mb-0">
+        <h4 class="mb-0">
             <?= isset($job) ? 'Edit Job Vacancy' : 'Add New Job Vacancy' ?>
-        </h1>
+        </h4>
         <a href="<?= base_url('admin/jobs') ?>" class="btn btn-outline-primary">
             <i class="fas fa-arrow-left me-1"></i> Back
         </a>
@@ -22,9 +22,8 @@
                     <input type="hidden" name="id" value="<?= esc($job['id']) ?>">
                 <?php endif; ?>
 
-                <!-- Form Fields -->
                 <div class="row g-4">
-                    
+
                     <!-- Job Title -->
                     <div class="col-md-4 text-start d-flex flex-column justify-content-center">
                         <label class="form-label fw-semibold">Job Title <span class="text-danger">*</span></label>
@@ -56,6 +55,22 @@
                                 <option value="<?= esc($type['id']) ?>"
                                     <?= isset($job) && $job['job_type_id'] == $type['id'] ? 'selected' : '' ?>>
                                     <?= esc($type['display_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- Discipline -->
+                    <div class="col-md-4 text-start d-flex flex-column justify-content-center">
+                        <label class="form-label fw-semibold">Discipline <span class="text-danger">*</span></label>
+                    </div>
+                    <div class="col-md-8">
+                        <select name="discipline_id" class="form-select" required>
+                            <option value="">Select Discipline</option>
+                            <?php foreach ($jobDisciplines as $discipline): ?>
+                                <option value="<?= esc($discipline['id']) ?>"
+                                    <?= isset($job) && $job['discipline_id'] == $discipline['id'] ? 'selected' : '' ?>>
+                                    <?= esc($discipline['name']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -168,8 +183,6 @@
                                     <?= isset($job) && $job['higher_education_required'] ? 'checked' : '' ?>>
                                 <label class="form-check-label">Higher Education Required (College/University)</label>
                             </div>
-
-                           
                         </div>
                     </div>
 
@@ -195,11 +208,8 @@
                         </div>
                     </div>
 
-
                 </div>
-                <!-- End Form Fields -->
-
-                <!-- Submit Button -->
+               
                 <div class="text-start mt-4">
                     <button type="submit" class="btn btn-primary px-4">
                         <i class="fas fa-save me-1"></i>

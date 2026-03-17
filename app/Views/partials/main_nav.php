@@ -49,7 +49,7 @@
                     </li>
                 <?php else: ?>
                     <li class="nav-item">
-                        <a class="btn btn-primary px-3 ms-lg-2" href="#">Login</a>
+                        <a class="btn btn-primary px-3 ms-lg-2" href="<?= base_url('login') ?>">Login</a>
                     </li>
                 <?php endif; ?>
                 

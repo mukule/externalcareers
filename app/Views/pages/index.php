@@ -118,7 +118,7 @@
                             <div class="card-body">
                                 <h5 class="card-title mb-2"><?= esc($type['display_name']) ?></h5>
                                 <p class="card-text text-muted mb-3"><?= esc($type['description']) ?></p>
-                                <a href="#" class="btn btn-primary">
+                                <a href="<?= base_url('job_type/' . $type['uuid']) ?>" class="btn btn-primary">
                                     Explore <i class="fas fa-arrow-right ms-1"></i>
                                 </a>
                             </div>

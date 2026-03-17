@@ -13,10 +13,12 @@
     <link rel="icon" type="image/png" href="<?= base_url('favicon.ico') ?>" />
     <style>
         .forgot-link a, .register-link a {
-             color: inherit !important;
+             color: #4b0ea5 !important;
             text-decoration: none !important;
+            transition: color 0.2s ease;
         }
         .forgot-link a:hover, .register-link a:hover {
+            color: #ff6600 !important; 
             text-decoration: underline;
         }
         .password-toggle { cursor: pointer; }
@@ -30,17 +32,8 @@
                     <div class="row justify-content-center">
                         <div class="col-lg-5">
                             <div class="card shadow-lg border-0 rounded-lg mt-5">
-                                <div class="card-header text-center border-0 bg-white p-3">
-                                    <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" class="mb-3" style="max-width: 200px;" />
-                                    
-                                    <!-- Mobile heading -->
-                                    <h6 class="d-block d-md-none text-center font-weight-light">
-                                        <?= esc($heading ?? 'Welcome Back') ?>
-                                    </h6>
-                                    <!-- Desktop heading -->
-                                    <h4 class="d-none d-md-block text-center font-weight-light">
-                                        <?= esc($heading ?? 'Welcome Back') ?>
-                                    </h4>
+                                <div class="card-header text-center border-0 bg-white p-2">
+                                   <a href="<?= base_url('/') ?>"> <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" class="mb-3" style="max-width: 200px;" /></a>
                                 </div>
 
                                 <div class="card-body">
@@ -51,7 +44,7 @@
                                         <?= csrf_field() ?>
 
                                         <!-- Email or Username -->
-                                        <div class="form-floating mb-3">
+                                        <div class="form-floating mb-2">
                                             <input class="form-control"
                                                 id="inputIdentifier"
                                                 type="text"
@@ -81,11 +74,7 @@
                                             </span>
                                         </div>
 
-                                        <!-- Remember password -->
-                                        <div class="form-check mb-3">
-                                            <input class="form-check-input" id="inputRememberPassword" type="checkbox" name="remember" <?= old('remember') ? 'checked' : '' ?> />
-                                            <label class="form-check-label" for="inputRememberPassword">Remember Password</label>
-                                        </div>
+                                       
 
                                         <!-- Centered Login Button -->
                                         <div class="text-center mt-4 mb-3">
@@ -93,8 +82,8 @@
                                         </div>
 
                                         <!-- Forgot Password and Register Links -->
-                                        <div class="card-footer text-center py-3 border-0">
-                                            <div class="small mb-1 forgot-link">
+                                       <div class="card-footer text-center py-3 border-0 d-flex justify-content-center gap-3 flex-wrap">
+                                            <div class="small forgot-link">
                                                 <a href="<?= base_url('/password') ?>">Forgot password? Reset</a>
                                             </div>
                                             <div class="small register-link">

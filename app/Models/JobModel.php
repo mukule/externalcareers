@@ -20,6 +20,7 @@ class JobModel extends Model
         'name',
         'reference_no',
         'job_type_id',
+        'discipline_id', 
         'job_summary',
         'job_description',
         'posts_needed',
@@ -65,7 +66,6 @@ class JobModel extends Model
     public function getRequirements(array $job): array
     {
         $requirements = [];
-
         $requirements['minimum_education'] = null;
 
         if (! empty($job['min_education_level_id'])) {
@@ -102,11 +102,8 @@ class JobModel extends Model
 
         $requirements = $this->getRequirements($job);
 
-        // -----------------------
         // Highest Education Check
-        // -----------------------
         $highestEducation = $eduModel->getHighestLevel($userId);
-
         if (! empty($job['min_education_level_id']) &&
             ! $eduLevelModel->qualifies(
                 $highestEducation['level_id'] ?? null,
@@ -116,28 +113,19 @@ class JobModel extends Model
             return ['qualifies' => false, 'reason' => 'Education level too low'];
         }
 
-        // -----------------------
         // Work Experience Check
-        // -----------------------
         $totalExperience = $workModel->getTotalExperienceYears($userId);
-
         if (! empty($requirements['work_experience_years']) &&
             $totalExperience < $requirements['work_experience_years']
         ) {
             return ['qualifies' => false, 'reason' => 'Insufficient work experience'];
         }
 
-        // -----------------------
         // Certification Check
-        // -----------------------
         if (! empty($requirements['certifications'])) {
-
             $userCerts = array_map(
                 fn($c) => strtolower(trim($c['name'])),
-                array_filter(
-                    $certModel->getByUser($userId),
-                    fn($c) => intval($c['active']) === 1
-                )
+                array_filter($certModel->getByUser($userId), fn($c) => intval($c['active']) === 1)
             );
 
             foreach ($requirements['certifications'] as $cert) {
@@ -150,85 +138,109 @@ class JobModel extends Model
             }
         }
 
-        // -----------------------
         // Membership Check
-        // -----------------------
         $userMemberships = array_filter(
             $membershipModel->getByUser($userId),
             fn($m) => intval($m['active']) === 1
         );
-
         if (empty($userMemberships)) {
             return ['qualifies' => false, 'reason' => 'No active memberships'];
         }
 
-        // -----------------------
         // Referee Check
-        // -----------------------
         $userRefs = $refereeModel
             ->where('user_id', $userId)
             ->where('active', 1)
             ->findAll();
-
         if (count($userRefs) < 3) {
             return ['qualifies' => false, 'reason' => 'Less than 3 referees'];
         }
 
-        // -----------------------
-        // Field of Study Check (UPDATED + SAFE)
-        // -----------------------
+        // Field of Study Check
         $jobFields = $specialityModel->getByJob($job['id']);
         $userEducations = $eduModel->getByUser($userId);
 
-        $requiredFieldIds = array_map(
-            'intval',
-            array_column($jobFields, 'id')
-        );
+        $requiredFieldIds = array_map('intval', array_column($jobFields, 'id'));
+        $userFieldIds     = array_map('intval', array_filter(array_column($userEducations, 'field_id')));
 
-        $userFieldIds = array_map(
-            'intval',
-            array_filter(array_column($userEducations, 'field_id'))
-        );
-
-        if (! empty($requiredFieldIds)) {
-
-            $matches = array_intersect($userFieldIds, $requiredFieldIds);
-
-            if (empty($matches)) {
-                return [
-                    'qualifies' => false,
-                    'reason'    => 'Field of study does not match job requirements'
-                ];
-            }
+        if (! empty($requiredFieldIds) && empty(array_intersect($userFieldIds, $requiredFieldIds))) {
+            return [
+                'qualifies' => false,
+                'reason'    => 'Field of study does not match job requirements'
+            ];
         }
 
-        // -----------------------
-        // All Checks Passed
-        // -----------------------
         return ['qualifies' => true, 'reason' => ''];
     }
 
+    // Count total jobs
+    public function countTotalJobs(): int
+    {
+        return $this->countAllResults();
+    }
 
-    /**
- * Count total jobs
- */
-public function countTotalJobs(): int
-{
-    return $this->countAllResults();
-}
+    // Count currently open jobs
+    public function countOpenJobs(): int
+    {
+        $today = date('Y-m-d');
+        return $this->where('date_open <=', $today)
+                    ->where('date_close >=', $today)
+                    ->countAllResults();
+    }
 
-/**
- * Count currently open jobs
- */
-public function countOpenJobs(): int
+    // Get open jobs by job type
+   
+   
+    public function getOpenJobsByType(int $jobTypeId, array $filters = []): array
 {
     $today = date('Y-m-d');
 
-    return $this->where('date_open <=', $today)
-                ->where('date_close >=', $today)
-                ->countAllResults();
+    $builder = $this->select('jobs.*, education_levels.name AS minimum_education')
+        ->join('job_specialities', 'job_specialities.job_id = jobs.id', 'left')
+        ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
+        ->where('jobs.job_type_id', $jobTypeId)
+        ->where('jobs.active', 1)
+        ->where('jobs.date_open <=', $today)
+        ->where('jobs.date_close >=', $today);
+
+    // Apply filters
+    if (!empty($filters['name'])) {
+        $builder->like('jobs.name', $filters['name']);
+    }
+
+    if (!empty($filters['reference_no'])) {
+        $builder->like('jobs.reference_no', $filters['reference_no']);
+    }
+
+    if (!empty($filters['discipline_id'])) {
+        $builder->where('jobs.discipline_id', $filters['discipline_id']);
+    }
+
+    if (!empty($filters['field_id'])) {
+        $builder->where('job_specialities.field_id', $filters['field_id']);
+    }
+
+    return $builder
+        ->groupBy('jobs.id') 
+        ->orderBy('jobs.date_open', 'ASC')
+        ->findAll();
 }
 
 
+    // Get open jobs by job type and optional discipline
+    public function getOpenJobsByTypeAndDiscipline(int $jobTypeId, ?int $disciplineId = null): array
+    {
+        $today = date('Y-m-d');
 
+        $builder = $this->where('job_type_id', $jobTypeId)
+                        ->where('active', 1)
+                        ->where('date_open <=', $today)
+                        ->where('date_close >=', $today);
+
+        if ($disciplineId !== null) {
+            $builder->where('discipline_id', $disciplineId);
+        }
+
+        return $builder->orderBy('date_open', 'ASC')->findAll();
+    }
 }
