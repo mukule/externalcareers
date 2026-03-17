@@ -54,17 +54,20 @@ public function store()
     $email    = trim($this->request->getPost('identifier'));
     $password = $this->request->getPost('password');
 
+    // Fetch user
     $user = $this->userModel
         ->where('email', $email)
         ->where('active', 1)
         ->first();
 
+    // Verify user existence and password
     if (! $user || ! password_verify($password, $user['password'])) {
         return redirect()->back()
             ->withInput()
             ->with('error', 'Invalid email or password.');
     }
 
+    // Update last login timestamp
     try {
         $this->userModel->update($user['id'], [
             'last_login' => date('Y-m-d H:i:s')
@@ -73,6 +76,23 @@ public function store()
         log_message('error', 'Failed to update last_login for user ID ' . $user['id'] . ' — ' . $e->getMessage());
     }
 
+    /**
+     * 🔹 NEW LOGIC: Check if password needs to be changed
+     * If password_changed is 0 (false), we redirect them immediately.
+     */
+    if ((int)$user['password_changed'] === 0) {
+        // Set minimal session data so the change-password page knows who they are
+        session()->set([
+            'temp_user_id' => $user['id'],
+            'temp_email'   => $user['email'],
+            'must_change_password' => true
+        ]);
+
+        return redirect()->to('auth/change-password')
+            ->with('info', 'Please change your password to proceed to your account.');
+    }
+
+    // 🔹 Standard Login Flow (If password is already changed)
     session()->regenerate();
 
     session()->set([
@@ -85,10 +105,8 @@ public function store()
         'logged_in'    => true
     ]);
 
-    // 🔹 Handle intended redirect
+    // Handle intended redirect
     $redirectTo = session()->get('intended_url');
-
-    // Remove it so it doesn’t persist
     session()->remove('intended_url');
 
     if ($redirectTo && str_starts_with($redirectTo, base_url())) {
@@ -98,7 +116,6 @@ public function store()
     // Default fallback
     return redirect()->to('/index');
 }
-
 
 
     
@@ -151,11 +168,11 @@ public function register()
         'first_name'       => $this->request->getPost('first_name'),
         'last_name'        => $this->request->getPost('last_name'),
         'email'            => $this->request->getPost('email'),
-        'password'         => $this->request->getPost('password'), // hashed automatically by model
+        'password'         => $this->request->getPost('password'), 
         'role'             => $role,
         'access_level'     => 1,
-        'password_changed' => 0,
-        'active'           => 1,
+        'password_changed' => 1,
+        'active'           => 0,
     ];
 
     
@@ -213,7 +230,7 @@ private function generateRandomPassword(int $length = 10): string
 
     public function sendResetLink()
 {
-    $email = $this->request->getPost('email');
+    $email = trim($this->request->getPost('email'));
 
     $userModel = new \App\Models\UserModel();
     $user = $userModel->where('email', $email)->first();
@@ -222,116 +239,160 @@ private function generateRandomPassword(int $length = 10): string
         return redirect()->back()->with('error', 'No user found with that email address.');
     }
 
-    
-    helper('text');
+    // Since 'text' and your 'custom_email' helpers are autoloaded, 
+    // we can use these functions directly.
     $newPassword = random_string('alnum', 10);
-
-    
     $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
-    
-    $userModel->update($user['id'], [
-        'password' => $hashedPassword,
-        'change_pass' => 1, 
-        'updated_at' => date('Y-m-d H:i:s'),
+    // 1. Update the database.
+    // We set password_changed to 0 so the AuthFilter forces a reset on login.
+    $updated = $userModel->update($user['id'], [
+        'password'         => $hashedPassword,
+        'password_changed' => 0, 
+        'updated_at'       => date('Y-m-d H:i:s'),
     ]);
 
-    
-    $loginUrl = base_url('/login');
+    if (!$updated) {
+        return redirect()->back()->with('error', 'Database update failed.');
+    }
 
+    // 2. Prepare the Email Content
+    $loginUrl = base_url('/login');
+    $subject  = 'Password Reset Request - Kengen Recruitment Portal';
     
-    $subject = 'Your New Password - CRVWWDA VMS';
     $message = "
-        <p>Hello <strong>{$user['first_name']}</strong>,</p>
-        <p>Your password has been reset. Here is your new password:</p>
-        <p style='font-size:16px;'><strong>{$newPassword}</strong></p>
-        <p>Please log in and change it immediately for your security.</p>
-        <p>
-            <a href='{$loginUrl}' 
-               style='display:inline-block;padding:10px 18px;background:#1a73e8;color:#fff;
-                      text-decoration:none;border-radius:5px;margin-top:10px;'>Login Now</a>
-        </p>
-        <br>
-        <p>Regards,<br><strong>CRVWWDA-VMS Team</strong></p>
+        <div style='font-family: sans-serif; color: #333; max-width: 600px;'>
+            <h2 style='color: #4b0ea5;'>Password Reset Successful</h2>
+            <p>Hello <strong>{$user['first_name']}</strong>,</p>
+            <p>Your password has been reset. Use the temporary password below to access your account:</p>
+            <div style='background: #f8f9fa; padding: 20px; border: 1px dashed #ccc; text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 2px;'>
+                {$newPassword}
+            </div>
+            <p style='color: #4b0ea5; font-size: 14px;'><strong>Note:</strong> You will be required to change this password immediately after logging in.</p>
+            <p style='margin-top: 30px;'>
+                <a href='{$loginUrl}' style='background: #4b0ea5; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 4px;'>Login to Portal</a>
+            </p>
+            <br>
+            <p>Regards,<br><strong>Kengen Recruitment Team</strong></p>
+        </div>
     ";
 
-    
-    $emailService = \Config\Services::email();
-    $emailService->setTo($email);
-    $emailService->setSubject($subject);
-    $emailService->setMessage($message);
+    // 3. Send using your autoloaded helper function
+    $status = send_email($email, $subject, $message);
 
-    if ($emailService->send()) {
-        return redirect()->back()->with('success', 'Password reset successfully. A new password has been sent to the user\'s email.');
-    } else {
-        log_message('error', 'Password reset email failed: ' . $emailService->printDebugger(['headers']));
-        return redirect()->back()->with('error', 'Password updated, but failed to send the email.');
-    }
+    if ($status === true) {
+        return redirect()->back()->with('success', 'A new password has been sent to ' . $email);
+    } 
+
+    // If it's not true, $status contains the debugger string from your helper
+    log_message('error', "Email failed to $email. Debug: " . $status);
+    return redirect()->back()->with('error', 'Password reset, but email delivery failed. Please contact admin.');
 }
 
 
-
-
-    
 public function changePassword()
 {
-    // Ensure the user is logged in
-    if (!session()->get('logged_in')) {
-        return redirect()->to('/login')->with('error', 'Please log in first.');
+    $session = session();
+
+    // Check for standard login OR the temporary "must change" flag we set in store()
+    $isLoggedIn  = $session->get('logged_in');
+    $mustChange  = $session->get('must_change_password');
+
+    if (!$isLoggedIn && !$mustChange) {
+        return redirect()->to('/login')->with('error', 'Please log in to access this page.');
     }
 
     // Load the view
     return view('auth/change_password', [
-        'title' => 'Change Password'
+        'title'      => 'Change Password',
+        'force_mode' => $mustChange // Pass this so your view can show a specific message
     ]);
 }
 
 
-    
-    public function updatePassword()
+public function updatePassword()
 {
     if ($this->request->getMethod() !== 'POST') {
         return redirect()->back()->with('error', 'Invalid request method.');
     }
 
-    $validation = \Config\Services::validation();
-    $validation->setRules([
-        'current_password'      => 'required',
-        'new_password'          => 'required|min_length[8]',
-        'confirm_new_password'  => 'required|matches[new_password]'
-    ]);
+    $session = session();
+    $mustChange = $session->get('must_change_password');
+    $userId = $mustChange ? $session->get('temp_user_id') : $session->get('user_id');
 
-    if (!$validation->withRequest($this->request)->run()) {
-        return redirect()->back()->withInput()->with('error', $validation->getErrors());
+    if (!$userId) {
+        return redirect()->to('/login')->with('error', 'Session expired. Please log in again.');
     }
 
-    $userId = session('user_id');
+    $rules = [
+        'new_password'         => 'required|min_length[8]',
+        'confirm_new_password' => 'required|matches[new_password]'
+    ];
+
+    if (!$mustChange) {
+        $rules['current_password'] = 'required';
+    }
+
+    if (!$this->validate($rules)) {
+        return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
+    }
+
     $user = $this->userModel->find($userId);
 
     if (!$user) {
-        return redirect()->back()->with('error', 'User not found.');
+        return redirect()->to('/login')->with('error', 'User account not found.');
     }
 
-    
-    if (!password_verify($this->request->getPost('current_password'), $user['password'])) {
-        return redirect()->back()->with('error', 'Current password is incorrect.');
+    if (!$mustChange) {
+        if (!password_verify($this->request->getPost('current_password'), $user['password'])) {
+            return redirect()->back()->with('error', 'Current password is incorrect.');
+        }
     }
 
     $newPassword = $this->request->getPost('new_password');
     $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
 
-    
     $updateData = [
-        'password'     => $hashed,
-        'change_pass'  => 0, 
-        'updated_at'   => date('Y-m-d H:i:s')
+        'password'         => $hashed,
+        'password_changed' => 1, 
+        'updated_at'       => date('Y-m-d H:i:s')
     ];
 
     if ($this->userModel->update($userId, $updateData)) {
-        return redirect()->to('/index')->with('success', 'Password updated successfully.');
+        
+        // 🔹 1. CRITICAL: Clear EVERY temporary flag immediately
+        $session->remove('must_change_password');
+        $session->remove('temp_user_id');
+        $session->remove('temp_email');
+
+        // 🔹 2. For standard users, update their session flag too
+        $session->set('password_changed', 1);
+
+        if ($mustChange) {
+            // 🔹 3. Fetch FRESH user data after the update
+            $freshUser = $this->userModel->find($userId);
+
+            $session->set([
+                'user_id'          => $freshUser['id'],
+                'uuid'             => $freshUser['uuid'],
+                'first_name'       => $freshUser['first_name'],
+                'email'            => $freshUser['email'],
+                'role'             => $freshUser['role'],
+                'access_level'     => $freshUser['access_level'],
+                'password_changed' => 1, // Explicitly set the new state
+                'logged_in'        => true
+            ]);
+            
+            // 🔹 4. Regenerate ID to finalize the "Full Login"
+            $session->regenerate();
+            
+            return redirect()->to('index')->with('success', 'Password set successfully. Welcome!');
+        }
+
+        return redirect()->to('index')->with('success', 'Password updated successfully.');
     }
 
-    return redirect()->back()->with('error', 'Failed to update password.');
+    return redirect()->back()->with('error', 'An error occurred while updating the password.');
 }
 
 }

@@ -8,42 +8,50 @@ use CodeIgniter\Filters\FilterInterface;
 
 class AuthFilter implements FilterInterface
 {
-   
+    
+    public function before(RequestInterface $request, $arguments = null)
+    {
+        // 1. Ensure the user is logged in
+        if (!session()->get('logged_in')) {
+          
+            $currentUrl = current_url();
 
-public function before(RequestInterface $request, $arguments = null)
-{
-    if (! session()->get('logged_in')) {
+            return redirect()
+                ->to('/login?next=' . urlencode($currentUrl))
+                ->with('error', 'Authentication required.');
+        }
 
-        // Get full current URL
-        $currentUrl = current_url();
+      
+        $userId = session()->get('user_id');
+        $userModel = model('App\Models\UserModel');
+        $user = $userModel->find($userId);
 
-        return redirect()
-            ->to('/login?next=' . urlencode($currentUrl))
-            ->with('error', 'Authentication required.');
+      
+        if (!$user) {
+            session()->destroy();
+            return redirect()->to('/login')->with('error', 'User account not found.');
+        }
+
+        // 4. Handle the Password Reset Logic
+        $currentPath = trim($request->getUri()->getPath(), '/');
+        
+        // Allowed paths while in the "Must Change" state
+        $allowedPaths = ['auth/change-password', 'auth/update-password', 'logout'];
+
+       
+        if ((int)$user['password_changed'] === 0) {
+            if (!in_array($currentPath, $allowedPaths)) {
+                return redirect()
+                    ->to('/auth/change-password')
+                    ->with('info', 'For security reasons, you must change your password to proceed.');
+            }
+        }
+        
+       
+        if ((int)$user['password_changed'] === 1 && $currentPath === 'auth/change-password') {
+            return redirect()->to('/index');
+        }
     }
-
-    $userId = session()->get('user_id');
-    $userModel = model('App\Models\UserModel');
-    $user = $userModel->find($userId);
-
-    if (! $user) {
-        session()->destroy();
-        return redirect()->to('/login')->with('error', 'User not found.');
-    }
-
-    $currentPath = trim($request->getUri()->getPath(), '/');
-
-    if (
-        (int) $user['password_changed'] === 1 &&
-        $currentPath !== 'auth/change-password' &&
-        $currentPath !== 'auth/update-password'
-    ) {
-        return redirect()
-            ->to('/auth/change-password')
-            ->with('info', 'You Must Change Your Password !!');
-    }
-}
-
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {

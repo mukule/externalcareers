@@ -1,68 +1,72 @@
 <?php
 
-use CodeIgniter\Email\Email;
+use App\Models\MailQueueModel;
 
+/**
+ * PRODUCER: Loops through all recipients and creates individual rows.
+ */
 function send_email(
     string $to,
     string $subject,
     string $message,
     string $from = null,
     string $fromName = null,
-    array $attachments = [],
+    array $attachments = [], // Ignored for now
     array $cc = [],
     array $bcc = []
 ) {
+    $mailQueueModel = new MailQueueModel();
+    
+    // 1. Collect all unique recipients into one flat list
+    // We treat everyone as a "To" recipient in the database for independent tracking
+    $recipients = array_unique(array_merge([$to], $cc, $bcc));
+    $recipients = array_filter($recipients); // Remove any empty values
+
+    $insertedCount = 0;
+
+    foreach ($recipients as $recipient) {
+        $data = [
+            'to_email'      => trim($recipient),
+            'subject'       => $subject,
+            'body'          => $message,
+            'status'        => 'pending',
+            'attempts'      => 0,
+            'error_message' => json_encode(['from' => $from, 'fromName' => $fromName]),
+            'created_at'    => date('Y-m-d H:i:s'),
+        ];
+
+        if ($mailQueueModel->insert($data)) {
+            $insertedCount++;
+        }
+    }
+
+    return $insertedCount > 0 ? true : "Failed to queue any emails.";
+}
+
+/**
+ * CONSUMER: Processes a single row at a time.
+ */
+function process_queued_email(array $row)
+{
     $email = \Config\Services::email();
     $config = new \Config\Email();
     $email->initialize((array) $config);
 
-    
-    $from     = $from ?? $config->fromEmail;
-    $fromName = $fromName ?? $config->fromName;
-
-    
-    $globalBCC = env('BCC'); 
-    if (!empty($globalBCC)) {
-        
-        $globalBCC = array_map('trim', explode(',', $globalBCC));
-    } else {
-        $globalBCC = [];
-    }
-
-    
-    $allBCC = array_unique(array_merge($bcc, $globalBCC));
-
+    $metadata = json_decode($row['error_message'], true) ?? [];
+    $from     = $metadata['from'] ?? $config->fromEmail;
+    $fromName = $metadata['fromName'] ?? $config->fromName;
 
     $email->setFrom($from, $fromName);
-    $email->setTo($to);
-    if (!empty($cc)) $email->setCC($cc);
-    if (!empty($allBCC)) $email->setBCC($allBCC);
+    $email->setTo($row['to_email']);
+    $email->setSubject($row['subject']);
+    $email->setMessage($row['body']);
+    $email->setMailType('html');
 
-    $email->setSubject($subject);
-    $email->setMessage($message);
-
+    // Note: We don't set CC/BCC here because they have their own rows now!
     
-    foreach ($attachments as $attachment) {
-        if (is_array($attachment) && isset($attachment['content'], $attachment['name'], $attachment['type'])) {
-            $email->attach($attachment['content'], 'attachment', $attachment['name'], $attachment['type']);
-        } elseif (is_string($attachment) && file_exists($attachment)) {
-            $email->attach($attachment);
-        }
-    }
-
-    
-    $result = $email->send();
-
-    
-    foreach ($attachments as $attachment) {
-        if (is_string($attachment) && file_exists($attachment) && strpos(sys_get_temp_dir(), dirname($attachment)) === 0) {
-            @unlink($attachment);
-        }
-    }
-
-    if ($result) {
+    if ($email->send()) {
         return true;
     }
 
-    return $email->printDebugger(['headers', 'subject', 'body']);
+    return $email->printDebugger(['headers']);
 }

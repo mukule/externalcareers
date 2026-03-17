@@ -22,6 +22,12 @@
             text-decoration: underline;
         }
         .password-toggle { cursor: pointer; }
+
+        .bg-blur { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
     </style>
 </head>
 <body class="bg-blur">
@@ -33,7 +39,7 @@
                         <div class="col-lg-5">
                             <div class="card shadow-lg border-0 rounded-lg mt-5">
                                 <div class="card-header text-center border-0 bg-white p-2">
-                                   <a href="<?= base_url('/') ?>"> <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" class="mb-3" style="max-width: 200px;" /></a>
+                                   <a href="<?= base_url('/') ?>"> <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" class="mb-3" style="max-width: 150px;" /></a>
                                 </div>
 
                                 <div class="card-body">

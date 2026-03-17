@@ -21,6 +21,12 @@
         .auth-link a:hover {
             text-decoration: underline !important;
         }
+
+        .bg-blur { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
     </style>
 </head>
 
@@ -36,17 +42,9 @@
 
                                 <!-- Header -->
                                 <div class="card-header text-center border-0 bg-white p-3">
-                                    <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" style="max-width: 200px;" />
+                                    <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" style="max-width: 150px;" />
 
-                                    <!-- Mobile heading -->
-                                    <h6 class="d-block d-md-none text-center font-weight-light mt-3">
-                                        <?= esc($title ?? 'Create Account') ?>
-                                    </h6>
-
-                                    <!-- Desktop heading -->
-                                    <h4 class="d-none d-md-block text-center font-weight-light mt-3">
-                                        <?= esc($title ?? 'Create Account') ?>
-                                    </h4>
+                               
                                 </div>
 
                                 <div class="card-body">

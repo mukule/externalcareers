@@ -23,6 +23,12 @@
             display: flex;
             justify-content: center;
         }
+
+        .bg-blur { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
     </style>
 </head>
 <body style="background: url('<?= base_url('assets/img/bg.jpg') ?>') no-repeat center center fixed; background-size: cover;">

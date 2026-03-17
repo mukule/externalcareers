@@ -24,8 +24,8 @@ $routes->get('/index', 'Home::index', ['filter' => 'auth']);
 
 
 // Change password routes
-$routes->get('auth/change-password', 'AuthController::changePassword', ['filter' => 'auth']);
-$routes->post('auth/update-password', 'AuthController::updatePassword', ['filter' => 'auth']);
+$routes->get('auth/change-password', 'AuthController::changePassword');
+$routes->post('auth/update-password', 'AuthController::updatePassword');
 
 // Job detail page
 $routes->get('jobs/(:segment)', 'Home::jobDetail/$1');
