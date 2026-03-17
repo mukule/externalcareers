@@ -18,7 +18,7 @@ class App extends BaseConfig
      */
     public string $baseURL = 'http://localhost:8080/';
 
-    public string $name = 'Wanandege Sacco Members Management System';
+    public string $name = 'Kengen Careers portal';
     
 
     /**

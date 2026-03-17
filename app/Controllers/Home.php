@@ -42,38 +42,15 @@ class Home extends BaseController
 
 public function home()
 {
-    $jobModel = $this->jobModel;
-    $jobTypeId = $this->request->getGet('type');
-    $today = date('Y-m-d');
+    $jobTypeModel = model(\App\Models\JobTypeModel::class);
 
-    $jobsQuery = $jobModel
-        ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name')
-        ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
-        ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
-        ->where('jobs.active', 1);
-
-    if ($jobTypeId) {
-        $jobsQuery->where('jobs.job_type_id', $jobTypeId);
-    }
-
-    $jobs = $jobsQuery->orderBy('jobs.date_open', 'ASC')->findAll();
-
-    // Filter only currently open jobs
-    foreach ($jobs as $key => &$job) {
-        if ($today < $job['date_open'] || $today > $job['date_close']) {
-            unset($jobs[$key]);
-        } else {
-            $job['status'] = 'Open';
-        }
-    }
-
-    $jobTypes = model(\App\Models\JobTypeModel::class)
+    $jobTypes = $jobTypeModel
+        ->select('uuid, name, display_name, banner, icon, description')
         ->where('active', 1)
         ->findAll();
 
     return view('pages/index', [
-        'title' => $this->data['app_name'],
-        'jobs' => $jobs,
+        'title'    => $this->data['app_name'],
         'jobTypes' => $jobTypes
     ]);
 }

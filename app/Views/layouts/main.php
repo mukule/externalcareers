@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= esc($app_name ?? 'CRVWWDA RECRUITMENT PORTAL') ?></title>
+    <title><?= esc($app_name ?? 'Kengen Career Portal') ?></title>
 
     <!-- Datatables CSS -->
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />

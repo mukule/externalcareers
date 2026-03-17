@@ -1,4 +1,4 @@
-<nav id="mainNavbar" class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 border-top border-3 border-primary">
+<nav id="mainNavbar" class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 border-bottom border-2 border-secondary">
     <div class="container">
 
         <!-- Logo -->
@@ -24,10 +24,11 @@
             <ul class="navbar-nav ms-auto align-items-lg-center">
 
                 <!-- Main Navigation -->
-                <li class="nav-item"><a class="nav-link px-3" href="<?= base_url() ?>">Home</a></li>
-                <li class="nav-item"><a class="nav-link px-3" href="#">Why CRVWDA</a></li>
+               
+                <li class="nav-item"><a class="nav-link px-3" href="#" target="_blank">Main website</a></li>
+                
+                <li class="nav-item"><a class="nav-link px-3" href="#">How to Apply</a></li>
                 <li class="nav-item"><a class="nav-link px-3" href="#">FAQs</a></li>
-                <li class="nav-item"><a class="nav-link px-3" href="#" target="_blank">Back to WRVWWDA Website</a></li>
 
                 <!-- Auth Links -->
                 <?php if (session()->get('user_id')): ?>
@@ -48,7 +49,7 @@
                     </li>
                 <?php else: ?>
                     <li class="nav-item">
-                        <a class="btn btn-primary px-3 ms-lg-2" href="<?= base_url('login') ?>">Login</a>
+                        <a class="btn btn-primary px-3 ms-lg-2" href="#">Login</a>
                     </li>
                 <?php endif; ?>
                 

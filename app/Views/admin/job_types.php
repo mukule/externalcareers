@@ -18,8 +18,10 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>#</th>
+                                <th>Icon</th>
                                 <th>Name</th>
                                 <th>Display Name</th>
+                                <th>Description</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -27,8 +29,23 @@
                             <?php foreach ($jobTypes as $index => $jobType): ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
+                                    
+                                    <!-- Icon -->
+                                    <td class="text-center">
+                                        <?php if (!empty($jobType['icon'])): ?>
+                                            <img src="<?= base_url('uploads/job_types/' . $jobType['icon']) ?>" 
+                                                 alt="Icon" class="img-fluid" style="max-height:40px;">
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+
                                     <td><?= esc($jobType['name']) ?></td>
                                     <td><?= esc($jobType['display_name']) ?></td>
+
+                                    <!-- Description -->
+                                    <td><?= esc($jobType['description']) ?: '<span class="text-muted">—</span>' ?></td>
+
                                     <td class="text-center">
                                         <a href="<?= base_url('admin/job-types/edit/' . $jobType['uuid']) ?>" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-edit"></i>

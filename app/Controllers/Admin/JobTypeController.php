@@ -8,10 +8,17 @@ use App\Models\JobTypeModel;
 class JobTypeController extends BaseController
 {
     protected $jobTypeModel;
+    protected $uploadPath;
 
     public function __construct()
     {
         $this->jobTypeModel = new JobTypeModel();
+        // Upload path in public folder
+        $this->uploadPath = WRITEPATH . '../public/uploads/job_types/';
+        // Ensure directory exists
+        if (!is_dir($this->uploadPath)) {
+            mkdir($this->uploadPath, 0755, true);
+        }
     }
 
     public function index()
@@ -37,16 +44,31 @@ class JobTypeController extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules([
             'name' => 'required|is_unique[job_types.name]',
+            'banner' => 'uploaded[banner]|max_size[banner,2048]|is_image[banner]',
+            'icon'   => 'uploaded[icon]|max_size[icon,1024]|is_image[icon]',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
+        // Handle Banner Upload
+        $bannerFile = $this->request->getFile('banner');
+        $bannerName = $bannerFile ? $bannerFile->getRandomName() : null;
+        if ($bannerFile) $bannerFile->move($this->uploadPath, $bannerName);
+
+        // Handle Icon Upload
+        $iconFile = $this->request->getFile('icon');
+        $iconName = $iconFile ? $iconFile->getRandomName() : null;
+        if ($iconFile) $iconFile->move($this->uploadPath, $iconName);
+
         $insertData = [
             'name'         => $data['name'],
             'display_name' => $data['display_name'] ?? $data['name'],
-            'active'       => isset($data['active']) ? 1 : 0, // handle active status
+            'banner'       => $bannerName,
+            'icon'         => $iconName,
+            'description'  => $data['description'] ?? null,
+            'active'       => isset($data['active']) ? 1 : 0,
         ];
 
         $this->jobTypeModel->insert($insertData);
@@ -57,8 +79,8 @@ class JobTypeController extends BaseController
     public function edit($uuid)
     {
         $jobType = $this->jobTypeModel->where('uuid', $uuid)->first();
-        if (!$jobType) {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException('Job Type not found.');
+         if (!$jobType) {
+            return redirect()->back()->with('error', 'Job Type not found.');
         }
 
         return view('admin/create_job_type', [
@@ -82,6 +104,8 @@ class JobTypeController extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules([
             'name' => "required|is_unique[job_types.name,id,{$id}]",
+            'banner' => 'max_size[banner,2048]|is_image[banner]',
+            'icon'   => 'max_size[icon,1024]|is_image[icon]',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
@@ -91,8 +115,35 @@ class JobTypeController extends BaseController
         $updateData = [
             'name'         => $data['name'],
             'display_name' => $data['display_name'] ?? $data['name'],
-            'active'       => isset($data['active']) ? 1 : 0, // handle active status
+            'description'  => $data['description'] ?? null,
+            'active'       => isset($data['active']) ? 1 : 0,
         ];
+
+        // Handle Banner Upload
+        $bannerFile = $this->request->getFile('banner');
+        if ($bannerFile && $bannerFile->isValid()) {
+            $bannerName = $bannerFile->getRandomName();
+            $bannerFile->move($this->uploadPath, $bannerName);
+            $updateData['banner'] = $bannerName;
+
+            // Delete old banner if exists
+            if (!empty($jobType['banner']) && file_exists($this->uploadPath . $jobType['banner'])) {
+                unlink($this->uploadPath . $jobType['banner']);
+            }
+        }
+
+        // Handle Icon Upload
+        $iconFile = $this->request->getFile('icon');
+        if ($iconFile && $iconFile->isValid()) {
+            $iconName = $iconFile->getRandomName();
+            $iconFile->move($this->uploadPath, $iconName);
+            $updateData['icon'] = $iconName;
+
+            // Delete old icon if exists
+            if (!empty($jobType['icon']) && file_exists($this->uploadPath . $jobType['icon'])) {
+                unlink($this->uploadPath . $jobType['icon']);
+            }
+        }
 
         $this->jobTypeModel->update($id, $updateData);
 
@@ -103,6 +154,14 @@ class JobTypeController extends BaseController
     {
         $jobType = $this->jobTypeModel->where('uuid', $uuid)->first();
         if ($jobType) {
+            // Delete images if they exist
+            if (!empty($jobType['banner']) && file_exists($this->uploadPath . $jobType['banner'])) {
+                unlink($this->uploadPath . $jobType['banner']);
+            }
+            if (!empty($jobType['icon']) && file_exists($this->uploadPath . $jobType['icon'])) {
+                unlink($this->uploadPath . $jobType['icon']);
+            }
+
             $this->jobTypeModel->delete($jobType['id']);
         }
 

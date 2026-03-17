@@ -18,14 +18,16 @@ class JobTypeModel extends Model
         'uuid',
         'name',
         'display_name',
-        'active', // added active field
+        'banner',       
+        'icon',         
+        'description',  
+        'active', 
     ];
 
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
-    // Automatically generate UUID before insert
     protected $beforeInsert = ['generateUUID'];
 
     protected function generateUUID(array $data)
