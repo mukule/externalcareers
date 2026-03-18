@@ -11,10 +11,9 @@ class MigrateUsers extends BaseCommand
 {
     protected $group = 'Migration';
     protected $name = 'migrate:users';
-    protected $description = 'Migrate users from old DB to new DB in batches until complete';
+    protected $description = 'Migrate users from old_users_temp to users table in batches';
 
-    // Default batch size
-    protected $batchSize = 500;
+    protected $batchSize = 5;
 
     protected $options = [
         'batch' => 'Number of users to process per run (default 500)',
@@ -23,17 +22,12 @@ class MigrateUsers extends BaseCommand
     public function run(array $params)
     {
         // ----------------------------
-        // Step 0: Connect to both DBs
+        // Step 0: Connect to DB
         // ----------------------------
         try {
-            $oldDb = \Config\Database::connect('old');
             $newDb = \Config\Database::connect('default');
-
-            $oldDb->query('SELECT 1')->getRow();
-            CLI::write('✅ Connected to OLD database', 'green');
-
             $newDb->query('SELECT 1')->getRow();
-            CLI::write('✅ Connected to NEW database', 'green');
+            CLI::write('✅ Connected to database', 'green');
         } catch (Exception $e) {
             CLI::error('❌ Database connection failed: ' . $e->getMessage());
             return;
@@ -57,9 +51,9 @@ class MigrateUsers extends BaseCommand
         CLI::write("Starting from ID: {$lastId}", 'yellow');
 
         // ----------------------------
-        // Step 2: Fetch batch
+        // Step 2: Fetch batch from temp table
         // ----------------------------
-        $users = $oldDb->table('users')
+        $users = $newDb->table('old_users_temp')
             ->where('id >', $lastId)
             ->orderBy('id', 'ASC')
             ->limit($this->batchSize)
@@ -84,36 +78,36 @@ class MigrateUsers extends BaseCommand
         $existingEmails = array_column($existing, 'email');
 
         // ----------------------------
-        // Step 4: Prepare insert data with random passwords & UUID
+        // Step 4: Prepare insert data
         // ----------------------------
         $insertData = [];
 
         foreach ($users as $u) {
             if (in_array($u->emailadd, $existingEmails)) {
+                CLI::write("⚠️ Skipping duplicate: {$u->emailadd}", 'yellow');
                 continue;
             }
 
-            // Generate a random password
-            $randomPassword = bin2hex(random_bytes(4)); // 8-character temp password
+            $randomPassword = bin2hex(random_bytes(4)); // 8-char temp password
 
             $insertData[] = [
-                'uuid' => Uuid::uuid4()->toString(),
-                'old_user_id' => $u->id,
-                'first_name' => null,
-                'last_name' => null,
-                'email' => $u->emailadd,
-                'password' => password_hash($randomPassword, PASSWORD_DEFAULT),
+                'uuid'             => Uuid::uuid4()->toString(),
+                'old_user_id'      => $u->id,
+                'first_name'       => null,
+                'last_name'        => null,
+                'email'            => $u->emailadd,
+                'password'         => password_hash($randomPassword, PASSWORD_DEFAULT),
                 'activation_token' => $u->activation_code,
-                'role' => 'applicant',
+                'role'             => 'applicant',
                 'password_changed' => 0,
-                'access_level' => $u->accesses,
-                'active' => ($u->active == 1 ? 1 : 0),
-                'last_login' => $u->last_accessed,
-                'created_at' => $u->date_created,
-                'updated_at' => date('Y-m-d H:i:s'),
+                'access_level'     => $u->accesses,
+                'active'           => ($u->active == 1 ? 1 : 0),
+                'last_login'       => $u->last_accessed,
+                'created_at'       => $u->date_created,
+                'updated_at'       => date('Y-m-d H:i:s'),
             ];
 
-            CLI::write("Will insert user: {$u->emailadd} | temp password: {$randomPassword}", 'yellow');
+            CLI::write("Will insert: {$u->emailadd} | temp password: {$randomPassword}", 'yellow');
         }
 
         // ----------------------------
@@ -121,9 +115,9 @@ class MigrateUsers extends BaseCommand
         // ----------------------------
         if (!empty($insertData)) {
             $newDb->table('users')->insertBatch($insertData);
-            CLI::write("✅ Inserted " . count($insertData) . " users into new DB.", 'green');
+            CLI::write('✅ Inserted ' . count($insertData) . ' users.', 'green');
         } else {
-            CLI::write('⚠️ No new users to insert in this batch (all duplicates).', 'yellow');
+            CLI::write('⚠️ No new users to insert (all duplicates).', 'yellow');
         }
 
         // ----------------------------
@@ -132,8 +126,7 @@ class MigrateUsers extends BaseCommand
         $newLastId = end($users)->id;
         $this->saveLastProcessedId($newDb, $newLastId);
         CLI::write("✅ Processed up to ID: {$newLastId}", 'green');
-
-        CLI::write("Batch complete. Run again to continue migration.", 'green');
+        CLI::write('Batch complete. Run again to continue migration.', 'green');
     }
 
     private function getLastProcessedId($db)
@@ -158,10 +151,12 @@ class MigrateUsers extends BaseCommand
                 ->update(['last_id' => $lastId]);
         } else {
             $db->table('migration_progress')
-                ->insert([
-                    'name' => 'users',
-                    'last_id' => $lastId
-                ]);
+                ->insert(['name' => 'users', 'last_id' => $lastId]);
         }
     }
 }
+
+
+
+
+
