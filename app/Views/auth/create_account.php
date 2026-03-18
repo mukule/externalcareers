@@ -13,7 +13,6 @@
     <style>
         .password-toggle { cursor: pointer; }
 
-        /* Remove default link styling */
         .auth-link a {
             color: inherit !important;
             text-decoration: none !important;
@@ -26,7 +25,17 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
-        
+
+        .form-floating > .form-control {
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 0.8rem;
+}
+
+.form-floating > label {
+    font-size: 0.75rem;
+}
+
     </style>
 </head>
 
@@ -41,10 +50,10 @@
                             <div class="card shadow-lg border-0 rounded-lg mt-5">
 
                                 <!-- Header -->
-                                <div class="card-header text-center border-0 bg-white p-3">
-                                    <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" style="max-width: 150px;" />
-
-                               
+                                <div class="card-header text-center border-0 bg-white p-2">
+                                    <a href="<?= base_url('/') ?>">
+                                        <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" class="mb-1" style="max-width: 150px;" />
+                                    </a>
                                 </div>
 
                                 <div class="card-body">
@@ -56,7 +65,7 @@
                                         <?= csrf_field() ?>
 
                                         <!-- First Name -->
-                                        <div class="form-floating mb-3">
+                                        <div class="form-floating mb-2">
                                             <input class="form-control"
                                                    id="firstName"
                                                    type="text"
@@ -68,7 +77,7 @@
                                         </div>
 
                                         <!-- Last Name -->
-                                        <div class="form-floating mb-3">
+                                        <div class="form-floating mb-2">
                                             <input class="form-control"
                                                    id="lastName"
                                                    type="text"
@@ -80,7 +89,7 @@
                                         </div>
 
                                         <!-- Email -->
-                                        <div class="form-floating mb-3">
+                                        <div class="form-floating mb-2">
                                             <input class="form-control"
                                                    id="email"
                                                    type="email"
@@ -91,8 +100,22 @@
                                             <label for="email">Email Address</label>
                                         </div>
 
+                                        <!-- National ID -->
+                                        <div class="form-floating mb-2">
+                                            <input class="form-control"
+                                                   id="nationalId"
+                                                   type="text"
+                                                   name="national_id"
+                                                   placeholder="National ID"
+                                                   value="<?= old('national_id') ?>"
+                                                   pattern="[0-9]{6,10}"
+                                                   maxlength="10"
+                                                   required />
+                                            <label for="nationalId">National ID</label>
+                                        </div>
+
                                         <!-- Password -->
-                                        <div class="row g-2 mb-3">
+                                        <div class="row g-2 mb-2">
                                             <div class="col-md-6 position-relative form-floating">
                                                 <input class="form-control"
                                                     id="password"

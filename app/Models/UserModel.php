@@ -19,13 +19,14 @@ class UserModel extends Model
     protected $allowedFields = [
         'uuid',
         'first_name',
-        'active',
         'last_name',
         'email',
         'password',
         'password_changed',
-        'role',             
+        'role',
         'access_level',
+        'active',
+        'activation_token',
         'last_login',
         'created_at',
         'updated_at',
@@ -34,53 +35,35 @@ class UserModel extends Model
     protected $beforeInsert = ['addUuid', 'applyDefaultRole', 'hashPassword'];
     protected $beforeUpdate = ['hashPassword'];
 
-   
     protected function addUuid(array $data)
     {
         if (empty($data['data']['uuid'] ?? null)) {
             $data['data']['uuid'] = $this->generateUuid();
         }
-
         return $data;
     }
 
-   
     protected function applyDefaultRole(array $data)
     {
         if (empty($data['data']['role'] ?? null)) {
-            $data['data']['role'] = 'applicant';   
+            $data['data']['role'] = 'applicant';
         }
-
         return $data;
     }
-
 
     protected function hashPassword(array $data)
     {
         if (isset($data['data']['password'])) {
-
-            // Only hash if it's not already hashed
             if (!password_get_info($data['data']['password'])['algo']) {
-
-                $data['data']['password'] = password_hash(
-                    $data['data']['password'],
-                    PASSWORD_DEFAULT
-                );
-
-                // Mark password as changed if not provided
+                $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
                 if (!isset($data['data']['password_changed'])) {
                     $data['data']['password_changed'] = 1;
                 }
             }
         }
-
         return $data;
     }
 
-
-    /**
-     * UUID Generator
-     */
     protected function generateUuid(): string
     {
         return sprintf(
@@ -95,55 +78,147 @@ class UserModel extends Model
         );
     }
 
-
-    /**
-     * Get full name
-     */
     public function getFullName(int $userId): ?string
     {
         $user = $this->find($userId);
-
         return $user
             ? trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))
             : null;
     }
 
-    /**
-     * Validate login using email + password
-     */
-    public function verifyLogin(string $email, string $password): ?array
+   
+    public function verifyLogin(string $email, string $password): array|string|null
     {
         $user = $this->where('email', $email)->first();
 
-        if ($user && password_verify($password, $user['password'])) {
-
-            // Update login timestamp & set password as changed
-            $this->update($user['id'], [
-                'last_login'       => date('Y-m-d H:i:s'),
-                'password_changed' => 1,
-            ]);
-
-            return $user;
+        if (!$user) {
+            return null;
         }
 
-        return null;
+        if (!password_verify($password, $user['password'])) {
+            return null;
+        }
+
+        if (isset($user['active']) && $user['active'] != 1) {
+            // User is not activated
+            return 'inactive';
+        }
+
+        // Update login timestamp
+        $this->update($user['id'], [
+            'last_login'       => date('Y-m-d H:i:s'),
+            'password_changed' => 1,
+        ]);
+
+        return $user;
     }
 
     /**
-     * Check if user has required access level
+     * Activate user by token
      */
+    public function activateByToken(string $token): bool
+    {
+        $user = $this->where('activation_token', $token)->first();
+        if (!$user) return false;
+
+        $this->update($user['id'], [
+            'active'           => 1,
+            'activation_token' => null,
+        ]);
+
+        return true;
+    }
+
     public function hasAccess(int $userId, int $requiredLevel): bool
     {
         $user = $this->find($userId);
+        return $user && isset($user['access_level']) && $user['access_level'] >= $requiredLevel;
+    }
 
-        return $user
-            && isset($user['access_level'])
-            && $user['access_level'] >= $requiredLevel;
+    public function countApplicants(): int
+    {
+        return $this->where('role', 'applicant')->countAllResults();
     }
 
 
-    public function countApplicants(): int
+
+    public function getApplicantsPaginated(int $perPage = 10, int $page = 1, array $filters = []): array
+    {
+        $builder = $this->db->table($this->table)
+            ->select('users.id, users.first_name, users.last_name, users.email, users.uuid, users.active, users.created_at, users.last_login, user_details.national_id')
+            ->join('user_details', 'user_details.user_id = users.id', 'left')
+            ->where('users.role', 'applicant');
+
+        // Apply filters
+        if (!empty($filters['name'])) {
+            $builder->groupStart()
+                    ->like('users.first_name', $filters['name'])
+                    ->orLike('users.last_name', $filters['name'])
+                    ->groupEnd();
+        }
+
+        if (!empty($filters['email'])) {
+            $builder->like('users.email', $filters['email']);
+        }
+
+        if (!empty($filters['national_id'])) {
+            $builder->like('user_details.national_id', $filters['national_id']);
+        }
+
+        // Clone for total count
+        $totalBuilder = clone $builder;
+        $total = $totalBuilder->countAllResults(false);
+
+        // Pagination
+        $offset = ($page - 1) * $perPage;
+        $builder->limit($perPage, $offset);
+
+        $data = $builder->get()->getResultArray();
+
+        return [
+            'data'    => $data,
+            'total'   => $total,
+            'perPage' => $perPage,
+            'page'    => $page,
+        ];
+    }
+
+
+
+public function setUserStatus(int $userId, bool $active): bool
 {
-    return $this->where('role', 'applicant')->countAllResults();
+    $user = $this->find($userId);
+    if (!$user) {
+        return false; 
+    }
+
+    return (bool) $this->update($userId, ['active' => $active ? 1 : 0]);
 }
+
+
+
+
+public function deleteUser(int $userId): bool
+{
+    
+    $user = $this->find($userId);
+    if (!$user) {
+        return false; 
+    }
+
+    
+    if (!empty($user['role']) && $user['role'] === 'admin') {
+        return false; 
+    }
+
+    
+    $userDetailsModel = new \App\Models\UserDetailsModel();
+    $userDetailsModel->where('user_id', $userId)->delete();
+
+    
+    return (bool) $this->delete($userId, true); 
+}
+
+
+
 }

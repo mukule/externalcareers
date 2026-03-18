@@ -4,15 +4,18 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Models\UserDetailsModel;
 use CodeIgniter\I18n\Time;
 
 class AuthController extends BaseController
 {
     protected UserModel $userModel;
+    protected UserDetailsModel $userDetailsModel;
 
     public function __construct()
     {
         $this->userModel = new UserModel();
+        $this->userDetailsModel = new UserDetailsModel();
     }
 
    
@@ -136,6 +139,7 @@ public function store()
 }
 
 
+
 public function register()
 {
     if ($this->request->getMethod() !== 'POST') {
@@ -144,14 +148,48 @@ public function register()
 
     $validation = \Config\Services::validation();
 
-    
+    // Validation rules with custom error messages
     $validation->setRules([
-        'first_name'        => 'required|min_length[2]|max_length[50]',
-        'last_name'         => 'required|min_length[2]|max_length[50]',
-        'email'             => 'required|valid_email|is_unique[users.email]',
-        'password'          => 'required|min_length[6]',
-        'confirm_password'  => 'required|matches[password]',
-        'role'              => 'permit_empty|in_list[admin,applicant]',
+        'first_name'       => 'required|min_length[2]|max_length[50]',
+        'last_name'        => 'required|min_length[2]|max_length[50]',
+        'email'            => 'required|valid_email|is_unique[users.email]',
+        'national_id'      => 'required|numeric|min_length[6]|max_length[10]',
+        'password'         => 'required|min_length[6]',
+        'confirm_password' => 'required|matches[password]',
+        'role'             => 'permit_empty|in_list[applicant]',
+    ], [
+        'first_name' => [
+            'required'   => 'Please enter your first name.',
+            'min_length' => 'First name must be at least 2 characters long.',
+            'max_length' => 'First name cannot exceed 50 characters.',
+        ],
+        'last_name' => [
+            'required'   => 'Please enter your last name.',
+            'min_length' => 'Last name must be at least 2 characters long.',
+            'max_length' => 'Last name cannot exceed 50 characters.',
+        ],
+        'email' => [
+            'required'    => 'Email address is required.',
+            'valid_email' => 'Please enter a valid email address.',
+            'is_unique'   => 'This email is already registered. Please use another email.',
+        ],
+        'national_id' => [
+            'required'   => 'National ID is required.',
+            'numeric'    => 'National ID must contain only numbers.',
+            'min_length' => 'National ID must be at least 6 digits.',
+            'max_length' => 'National ID cannot exceed 10 digits.',
+        ],
+        'password' => [
+            'required'   => 'Password is required.',
+            'min_length' => 'Password must be at least 6 characters long.',
+        ],
+        'confirm_password' => [
+            'required' => 'Please confirm your password.',
+            'matches'  => 'Password confirmation does not match the password.',
+        ],
+        'role' => [
+            'in_list' => 'Invalid role selected.',
+        ],
     ]);
 
     if (!$validation->withRequest($this->request)->run()) {
@@ -160,22 +198,24 @@ public function register()
             ->with('error', $validation->getErrors());
     }
 
-   
     $role = $this->request->getPost('role') ?: 'applicant';
 
-    
+    // Generate activation token
+    $activationToken = bin2hex(random_bytes(32));
+
+    // Create user (inactive by default)
     $userData = [
         'first_name'       => $this->request->getPost('first_name'),
         'last_name'        => $this->request->getPost('last_name'),
         'email'            => $this->request->getPost('email'),
-        'password'         => $this->request->getPost('password'), 
+        'password'         => $this->request->getPost('password'),
         'role'             => $role,
-        'access_level'     => 1,
+        'access_level'     => 0,
         'password_changed' => 1,
         'active'           => 0,
+        'activation_token' => $activationToken,
     ];
 
-    
     $insertedId = $this->userModel->insert($userData);
 
     if (!$insertedId) {
@@ -184,24 +224,58 @@ public function register()
             ->with('error', 'Unable to create account. Please try again.');
     }
 
-    // Prepare and send welcome email
-    $message = view('emails/welcome', [
-        'first_name' => $this->request->getPost('first_name'),
-        'appName'    => 'CRVWWDA RECRUITMENT PORTAL', 
+    // Insert user details
+    $this->userDetailsModel->insert([
+        'user_id'     => $insertedId,
+        'national_id' => $this->request->getPost('national_id'),
+        'completed'   => 0,
+        'active'      => 1,
     ]);
 
-    send_email(
+    // Prepare activation email
+    $activationLink = base_url("/activate/{$activationToken}");
+    $message = view('emails/welcome_activation', [
+        'first_name'     => $this->request->getPost('first_name'),
+        'appName'        => 'Kengen Recruitment Portal',
+        'activationLink' => $activationLink,
+    ]);
+
+    // Queue the email using your send_email() function
+    $emailQueued = send_email(
         $this->request->getPost('email'),
-        'Welcome to CRVWWDA RECRUITMENT PORTAL',
+        'Activate Your Account',
         $message
     );
 
-    // Success: redirect back to login without old input
+    if ($emailQueued !== true) {
+        // Optional: log or notify admin if email failed to queue
+        log_message('error', 'Failed to queue activation email for user ID: ' . $insertedId);
+    }
+
     return redirect()->to('/login')->with(
         'success',
-        'Account created successfully. You can now log in.'
+        'Account created successfully. Please check your email to activate your account before logging in.'
     );
 }
+
+
+
+
+public function activate($token = null)
+{
+    if (!$token) {
+        return redirect()->to('/login')->with('error', 'Invalid activation link.');
+    }
+
+    $activated = $this->userModel->activateByToken($token);
+
+    if ($activated) {
+        return redirect()->to('/login')->with('success', 'Your account has been activated. You can now log in.');
+    } else {
+        return redirect()->to('/login')->with('error', 'Invalid or expired activation link.');
+    }
+}
+
 
 
 /**
@@ -256,7 +330,7 @@ private function generateRandomPassword(int $length = 10): string
         return redirect()->back()->with('error', 'Database update failed.');
     }
 
-    // 2. Prepare the Email Content
+    
     $loginUrl = base_url('/login');
     $subject  = 'Password Reset Request - Kengen Recruitment Portal';
     

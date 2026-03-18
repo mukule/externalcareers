@@ -42,8 +42,13 @@
                             <?= esc(session()->get('first_name')) ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                            <li><a class="dropdown-item" href="<?= base_url('dashboard') ?>">Dashboard</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                             <?php if (session()->get('access_level') == 1): ?>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin') ?>">Dashboard</a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                            <?php endif; ?>
+                            
                             <li><a class="dropdown-item" href="<?= base_url('logout') ?>">Logout</a></li>
                         </ul>
                     </li>

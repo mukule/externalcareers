@@ -164,22 +164,28 @@ public function jobsByType($jobTypeUuid = null)
 
 public function adminDashboard()
 {
-    $totalApplicants        = $this->userModel->countApplicants();
-    $totalJobs              = $this->jobModel->countTotalJobs();
-    $openJobs               = $this->jobModel->countOpenJobs();
-    $totalApplications      = $this->jobApplicationModel->countApplications();
-    $qualifiedApplications  = $this->jobApplicationModel->countQualifiedApplications();
+    $totalApplicants       = $this->userModel->countApplicants();
+    $totalJobs             = $this->jobModel->countTotalJobs();
+    $openJobs              = $this->jobModel->countOpenJobs();
+    $totalApplications     = $this->jobApplicationModel->countApplications();
+    $qualifiedApplications = $this->jobApplicationModel->countQualifiedApplications();
 
-    // Latest 5 applicants only (important for performance)
-    $latestApplicants = $this->userModel
-        ->where('role', 'applicant')
-        ->where('active', 1)
-        ->orderBy('created_at', 'DESC')
-        ->findAll();
+    
+    $filters = [
+        'name'        => $this->request->getGet('name'),
+        'email'       => $this->request->getGet('email'),
+        'national_id' => $this->request->getGet('national_id'),
+    ];
 
-    // Jobs with application counts
-    $jobsWithCounts = $this->jobApplicationModel
-        ->getJobsWithApplicationCounts();
+   
+    $perPage = 10;
+    $page    = (int) $this->request->getGet('page') ?: 1;
+
+   
+    $applicants = $this->userModel->getApplicantsPaginated($perPage, $page, $filters);
+
+    
+    $jobsWithCounts = $this->jobApplicationModel->getJobsWithApplicationCounts();
 
     return view('dashboard/admin', [
         'title'                  => 'Admin Dashboard',
@@ -188,7 +194,11 @@ public function adminDashboard()
         'openJobs'               => $openJobs,
         'totalApplications'      => $totalApplications,
         'qualifiedApplications'  => $qualifiedApplications,
-        'latestApplicants'       => $latestApplicants,
+        'applicants'             => $applicants['data'], 
+        'applicantsTotal'        => $applicants['total'],
+        'applicantsPage'         => $applicants['page'],
+        'applicantsPerPage'      => $applicants['perPage'],
+        'filters'                => $filters,             
         'jobsWithCounts'         => $jobsWithCounts,
     ]);
 }
@@ -227,4 +237,93 @@ public function adminDashboard()
         'applicants' => $applicants,
     ]);
 }
+
+
+public function toggleUserStatus(int $userId, string $action)
+{
+   
+    if (!$this->isAdmin()) {
+        return redirect()->back()->with('error', 'Unauthorized action.');
+    }
+
+    $currentUserId = session()->get('user_id');
+
+   
+    if ($userId === $currentUserId && $action === 'deactivate') {
+        return redirect()->back()->with('error', 'Self Deactivation Prohibited');
+    }
+
+    $active = $action === 'activate' ? true : false;
+
+    $success = $this->userModel->setUserStatus($userId, $active);
+
+    if ($success) {
+        $statusText = $active ? 'activated' : 'deactivated';
+        return redirect()->back()->with('success', "User successfully $statusText.");
+    }
+
+    return redirect()->back()->with('error', 'User not found or could not update status.');
+}
+
+
+
+public function userDetail(string $uuid)
+{
+    if (!$this->isAdmin()) {
+        return redirect()->to('/login')->with('error', 'Unauthorized access.');
+    }
+
+    $userDetailsModel = new \App\Models\UserDetailsModel();
+    $countyModel      = new \App\Models\CountyModel();
+
+    // Get user
+    $user = $this->userModel->where('uuid', $uuid)->first();
+    if (!$user) {
+        return redirect()->back()->with('error', 'User not found.');
+    }
+
+    // Get details
+    $details = $userDetailsModel->getByUserId((int)$user['id']);
+    if (!$details) {
+        return redirect()->back()->with('error', 'User details not found.');
+    }
+
+    // Merge
+    $userFull = array_merge($user, $details);
+
+    // Profile completion
+    $userFull['profile_completed'] = $userDetailsModel->isComplete((int)$user['id']);
+
+    // ✅ Resolve county names
+    $userFull['county_of_origin_name'] = !empty($userFull['county_of_origin_id'])
+        ? $countyModel->getCountyNameById((int)$userFull['county_of_origin_id'])
+        : null;
+
+    $userFull['county_of_residence_name'] = !empty($userFull['county_of_residence_id'])
+        ? $countyModel->getCountyNameById((int)$userFull['county_of_residence_id'])
+        : null;
+
+    return view('admin/registrant_details', [
+        'title' => 'User Details - ' . trim($user['first_name'] . ' ' . $user['last_name']),
+        'user'  => $userFull
+    ]);
+}
+
+
+
+public function deleteUser(int $userId)
+{
+    if (!$this->isAdmin()) {
+        return redirect()->to('/login')->with('error', 'Unauthorized access.');
+    }
+
+    $userModel = new \App\Models\UserModel();
+
+    if ($userModel->deleteUser($userId)) {
+        return redirect()->back()->with('success', 'User deleted successfully.');
+    } else {
+        return redirect()->back()->with('error', 'Failed to delete user.');
+    }
+}
+
 }

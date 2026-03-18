@@ -41,4 +41,10 @@ class CountyModel extends Model
     return $this->where('uuid', $uuid)->first();
 }
 
+public function getCountyNameById(int $id): ?string
+{
+    $county = $this->select('name')->where('id', $id)->first();
+    return $county['name'] ?? null;
+}
+
 }

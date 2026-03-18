@@ -5,7 +5,7 @@
     
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Dashboard Overview</h2>
+        <h4 class="mb-0">Dashboard Overview</h4>
         <small class="text-muted"><?= date('d M Y, H:i') ?></small>
     </div>
     
@@ -20,8 +20,8 @@
                         <p class="text-muted text-uppercase small fw-semibold mb-1">Total Applicants</p>
                         <h3 class="mb-0 fw-bold"><?= esc($totalApplicants ?? 0) ?></h3>
                     </div>
-                    <div class="text-primary">
-                        <i class="fas fa-users fa-2x"></i>
+                    <div class="icon-circle bg-primary-subtle text-primary">
+                        <i class="fas fa-users"></i>
                     </div>
                 </div>
             </div>
@@ -35,8 +35,8 @@
                         <p class="text-muted text-uppercase small fw-semibold mb-1">Total Jobs</p>
                         <h3 class="mb-0 fw-bold"><?= esc($totalJobs ?? 0) ?></h3>
                     </div>
-                    <div class="text-success">
-                        <i class="fas fa-briefcase fa-2x"></i>
+                    <div class="icon-circle bg-primary-subtle text-primary">
+                        <i class="fas fa-briefcase"></i>
                     </div>
                 </div>
             </div>
@@ -50,8 +50,8 @@
                         <p class="text-muted text-uppercase small fw-semibold mb-1">Open Jobs</p>
                         <h3 class="mb-0 fw-bold"><?= esc($openJobs ?? 0) ?></h3>
                     </div>
-                    <div class="text-warning">
-                        <i class="fas fa-folder-open fa-2x"></i>
+                    <div class="icon-circle bg-primary-subtle text-primary">
+                        <i class="fas fa-folder-open"></i>
                     </div>
                 </div>
             </div>
@@ -65,8 +65,8 @@
                         <p class="text-muted text-uppercase small fw-semibold mb-1">Applications</p>
                         <h3 class="mb-0 fw-bold"><?= esc($totalApplications ?? 0) ?></h3>
                     </div>
-                    <div class="text-info">
-                        <i class="fas fa-file-alt fa-2x"></i>
+                    <div class="icon-circle bg-primary-subtle text-primary">
+                        <i class="fas fa-file-alt"></i>
                     </div>
                 </div>
             </div>
@@ -74,87 +74,127 @@
 
     </div>
 
-    <!-- Two-column row: Jobs & Applicants -->
+    <!-- Applicants with Filters -->
     <div class="row g-4">
 
-        <!-- Jobs with Application Counts -->
-        <div class="col-xl-6">
-            <div class="card shadow-sm border-0 p-2">
-                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">Jobs</h5>
-                    <a href="<?= base_url('admin/jobs-applications') ?>" class="btn btn-sm btn-outline-primary">
-                        View All <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
-                </div>
-                <div class="card-body p-2">
-                    <?php if (!empty($jobsWithCounts)): ?>
-                        <div class="table-responsive">
-                            <table id="datatablesSimple" class="table table-bordered table-striped align-middle dashboard-table">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Job Title</th>
-                                       
-                                        <th>Created On</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($jobsWithCounts as $index => $job): ?>
-                                        <tr>
-                                            <td><?= $index + 1 ?></td>
-                                            <td><?= esc($job['name']) ?>   - <span class="badge bg-info"><?= esc($job['applications_count']) ?></span></td>
-                                           
-                                            <td><?= date('d M Y', strtotime($job['created_at'])) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <p class="text-muted mb-0">No jobs found.</p>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Latest Applicants -->
-        <div class="col-xl-6">
+        <div class="col-xl-12">
             <div class="card shadow-sm border-0 p-2">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold">Registrants</h5>
-                    <a href="<?= base_url('admin/applicants') ?>" class="btn btn-sm btn-outline-primary">
+                    <a href="#" class="btn btn-sm btn-outline-primary">
                         View All <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
-                <div class="card-body p-2">
-                    <?php if (!empty($latestApplicants)): ?>
+                
+                <!-- Filter Form -->
+                <div class="card-body py-2">
+                    <form method="get" class="row g-2 align-items-end mb-3">
+                        <div class="col-md-3">
+                            <label for="filterName" class="form-label small">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="filterName" name="name" value="<?= esc($filters['name'] ?? '') ?>" placeholder="Search Name">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterEmail" class="form-label small">Email</label>
+                            <input type="text" class="form-control form-control-sm" id="filterEmail" name="email" value="<?= esc($filters['email'] ?? '') ?>" placeholder="Search Email">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterNationalId" class="form-label small">National ID</label>
+                            <input type="text" class="form-control form-control-sm" id="filterNationalId" name="national_id" value="<?= esc($filters['national_id'] ?? '') ?>" placeholder="Search ID">
+                        </div>
+                        <div class="col-md-3 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm flex-fill">Filter</button>
+                            <?php if (!empty($filters['name']) || !empty($filters['email']) || !empty($filters['national_id'])): ?>
+                                <a href="<?= current_url() ?>" class="btn btn-outline-secondary btn-sm flex-fill">Clear</a>
+                            <?php endif; ?>
+                        </div>
+                    </form>
+
+                    <?php if (!empty($applicants)): ?>
                         <div class="table-responsive">
-                            <table id="datatablesSimple" class="table align-middle dashboard-table datatable-simple">
-                                <thead class="table-dark">
+                            <table class="table align-middle dashboard-table">
+                                <thead class="table-light">
                                     <tr>
                                         <th>#</th>
                                         <th>Full Name</th>
                                         <th>Email</th>
+                                        <th>National ID</th>
                                         <th>Registered On</th>
-                                       
+                                        <th>Last Login</th>
+                                         <th>Status</th>
+                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($latestApplicants as $index => $applicant): ?>
+                                    <?php foreach ($applicants as $index => $applicant): ?>
                                         <tr>
-                                            <td><?= $index + 1 ?></td>
-                                            <td><?= esc(trim($applicant['first_name'] . ' ' . $applicant['last_name'])) ?></td>
+                                            <td><?= esc(($applicantsPage - 1) * $applicantsPerPage + $index + 1) ?></td>
+                                           <td>
+                                                <a href="<?= base_url('admin/users/' . esc($applicant['uuid'])) ?>" class="text-decoration-none">
+                                                    <?= esc(trim($applicant['first_name'] . ' ' . $applicant['last_name'])) ?>
+                                                </a>
+                                            </td>
                                             <td><?= esc($applicant['email']) ?></td>
-                                            <td><?= date('d M Y, H:i', strtotime($applicant['created_at'])) ?></td>
+                                            <td><?= esc($applicant['national_id'] ?? '-') ?></td>
                                            
+                                            <td><?= esc(isset($applicant['created_at']) ? date('d M Y, H:i', strtotime($applicant['created_at'])) : '-') ?></td>
+                                            <td><?= esc(!empty($applicant['last_login']) ? date('d M Y, H:i', strtotime($applicant['last_login'])) : '-') ?></td>
+                                             <td>
+                                                <?php if (!empty($applicant['active']) && $applicant['active'] == 1): ?>
+                                                    <span class="badge bg-primary">Active</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            
+                                                <td>
+                                                <?php if ($applicant['id'] != session()->get('user_id')): // prevent self-toggle ?>
+                                                    <?php if (!empty($applicant['active']) && $applicant['active'] == 1): ?>
+                                                        <a href="<?= base_url('admin/user-status/' . $applicant['id'] . '/deactivate') ?>" 
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        onclick="return confirm('Are you sure you want to deactivate this user?');">
+                                                            Deactivate
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <a href="<?= base_url('admin/user-status/' . $applicant['id'] . '/activate') ?>" 
+                                                        class="btn btn-sm btn-outline-secondary"
+                                                        onclick="return confirm('Are you sure you want to activate this user?');">
+                                                            Activate
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                     <a href="<?= base_url('admin/user-del/' . $applicant['id'] . '/delete') ?>" 
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('Are you sure you want to permanently delete this user Account');">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </a>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">N/A</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+
+                            <!-- Pagination Links -->
+                            <nav>
+                                <ul class="pagination pagination-sm">
+                                    <?php
+                                    $totalPages = ceil($applicantsTotal / $applicantsPerPage);
+                                    for ($i = 1; $i <= $totalPages; $i++): ?>
+                                        <li class="page-item <?= $i == $applicantsPage ? 'active' : '' ?>">
+                                            <a class="page-link" href="<?= current_url() ?>?<?= http_build_query(array_merge($filters, ['page' => $i])) ?>">
+                                                <?= $i ?>
+                                            </a>
+                                        </li>
+                                    <?php endfor; ?>
+                                </ul>
+                            </nav>
                         </div>
                     <?php else: ?>
                         <div class="text-center py-4">
-                            <p class="text-muted mb-0">No applicants found.</p>
+                            <p class="text-muted mb-0">No Registrants found.</p>
                         </div>
                     <?php endif; ?>
                 </div>

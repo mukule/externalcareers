@@ -19,6 +19,26 @@
 
    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/trumbowyg@2.28.0/dist/ui/trumbowyg.min.css">
     <link rel="icon" type="image/png" href="<?= base_url('favicon.ico') ?>" />
+
+    <style>
+
+        .icon-circle {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(76, 12, 171, 0.1);
+}
+
+.icon-circle i {
+    font-size: 1.2rem;
+    color: #4c0cab;
+}
+
+
+    </style>
 </head>
 
 <body class="sb-nav-fixed">

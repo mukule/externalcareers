@@ -28,10 +28,20 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
+
+         .form-floating > .form-control {
+            height: 38px !important;
+            min-height: 38px !important;
+            font-size: 0.8rem;
+        }
+
+        .form-floating > label {
+            font-size: 0.75rem;
+        }
         
     </style>
 </head>
-<body style="background: url('<?= base_url('assets/img/bg.jpg') ?>') no-repeat center center fixed; background-size: cover;">
+<body class="bg-blur">
     <div id="layoutAuthentication">
         <div id="layoutAuthentication_content">
             <main>

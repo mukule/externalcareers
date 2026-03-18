@@ -19,6 +19,8 @@ $routes->post('/forgot-password', 'AuthController::sendResetLink');
 
 $routes->get('/logout', 'AuthController::logout');
 
+$routes->get('activate/(:any)', 'AuthController::activate/$1');
+
 // Home page (general auth)
 $routes->get('/index', 'Home::index', ['filter' => 'auth']);
 
@@ -38,6 +40,9 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 
     // Admin dashboard
     $routes->get('/', 'Home::adminDashboard');
+    $routes->get('user-status/(:num)/(:any)', 'Home::toggleUserStatus/$1/$2');
+    $routes->get('users/(:segment)', 'Home::userDetail/$1');
+    $routes->get('user-del/(:num)/delete', 'Home::deleteUser/$1');
 
     // Job Types CRUD
     $routes->get('job-types', 'Admin\JobTypeController::index');

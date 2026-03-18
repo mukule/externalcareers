@@ -46,6 +46,7 @@ function send_email(
 /**
  * CONSUMER: Processes a single row at a time.
  */
+
 function process_queued_email(array $row)
 {
     $email = \Config\Services::email();
@@ -56,14 +57,21 @@ function process_queued_email(array $row)
     $from     = $metadata['from'] ?? $config->fromEmail;
     $fromName = $metadata['fromName'] ?? $config->fromName;
 
+    // Read BCC from .env
+    $bccEnv = getenv('BCC'); // e.g., "admin@example.com,manager@example.com"
+    $bcc = !empty($bccEnv) ? array_map('trim', explode(',', $bccEnv)) : [];
+
     $email->setFrom($from, $fromName);
     $email->setTo($row['to_email']);
+
+    if (!empty($bcc)) {
+        $email->setBCC($bcc);
+    }
+
     $email->setSubject($row['subject']);
     $email->setMessage($row['body']);
     $email->setMailType('html');
 
-    // Note: We don't set CC/BCC here because they have their own rows now!
-    
     if ($email->send()) {
         return true;
     }
