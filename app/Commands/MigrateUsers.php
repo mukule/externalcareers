@@ -13,7 +13,7 @@ class MigrateUsers extends BaseCommand
     protected $name = 'migrate:users';
     protected $description = 'Migrate users from old_users_temp to users table in batches';
 
-    protected $batchSize = 5;
+    protected $batchSize = 300;
 
     protected $options = [
         'batch' => 'Number of users to process per run (default 500)',

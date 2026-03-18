@@ -17,7 +17,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Total Applicants</p>
+                        <p class="text-muted text-uppercase small fw-semibold mb-1">Total Registrants</p>
                         <h3 class="mb-0 fw-bold"><?= esc($totalApplicants ?? 0) ?></h3>
                     </div>
                     <div class="icon-circle bg-primary-subtle text-primary">
@@ -120,77 +120,113 @@
                                         <th>National ID</th>
                                         <th>Registered On</th>
                                         <th>Last Login</th>
-                                         <th>Status</th>
-                                         <th>Action</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($applicants as $index => $applicant): ?>
                                         <tr>
                                             <td><?= esc(($applicantsPage - 1) * $applicantsPerPage + $index + 1) ?></td>
-                                           <td>
+                                            <td>
                                                 <a href="<?= base_url('admin/users/' . esc($applicant['uuid'])) ?>" class="text-decoration-none">
                                                     <?= esc(trim($applicant['first_name'] . ' ' . $applicant['last_name'])) ?>
                                                 </a>
                                             </td>
                                             <td><?= esc($applicant['email']) ?></td>
                                             <td><?= esc($applicant['national_id'] ?? '-') ?></td>
-                                           
                                             <td><?= esc(isset($applicant['created_at']) ? date('d M Y, H:i', strtotime($applicant['created_at'])) : '-') ?></td>
                                             <td><?= esc(!empty($applicant['last_login']) ? date('d M Y, H:i', strtotime($applicant['last_login'])) : '-') ?></td>
-                                             <td>
+                                            <td>
                                                 <?php if (!empty($applicant['active']) && $applicant['active'] == 1): ?>
                                                     <span class="badge bg-primary">Active</span>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary">Inactive</span>
                                                 <?php endif; ?>
                                             </td>
-                                            
-                                                <td>
+                                            <td>
                                                 <?php if ($applicant['id'] != session()->get('user_id')): // prevent self-toggle ?>
                                                     <?php if (!empty($applicant['active']) && $applicant['active'] == 1): ?>
                                                         <a href="<?= base_url('admin/user-status/' . $applicant['id'] . '/deactivate') ?>" 
-                                                        class="btn btn-sm btn-outline-primary"
-                                                        onclick="return confirm('Are you sure you want to deactivate this user?');">
+                                                           class="btn btn-sm btn-outline-primary"
+                                                           onclick="return confirm('Are you sure you want to deactivate this user?');">
                                                             Deactivate
                                                         </a>
                                                     <?php else: ?>
                                                         <a href="<?= base_url('admin/user-status/' . $applicant['id'] . '/activate') ?>" 
-                                                        class="btn btn-sm btn-outline-secondary"
-                                                        onclick="return confirm('Are you sure you want to activate this user?');">
+                                                           class="btn btn-sm btn-outline-secondary"
+                                                           onclick="return confirm('Are you sure you want to activate this user?');">
                                                             Activate
                                                         </a>
                                                     <?php endif; ?>
-
-                                                     <a href="<?= base_url('admin/user-del/' . $applicant['id'] . '/delete') ?>" 
-                                                        class="btn btn-sm btn-outline-danger"
-                                                        onclick="return confirm('Are you sure you want to permanently delete this user Account');">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </a>
+                                                    <a href="<?= base_url('admin/user-del/' . $applicant['id'] . '/delete') ?>" 
+                                                       class="btn btn-sm btn-outline-danger"
+                                                       onclick="return confirm('Are you sure you want to permanently delete this user Account');">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </a>
                                                 <?php else: ?>
                                                     <span class="text-muted small">N/A</span>
                                                 <?php endif; ?>
                                             </td>
-                                            
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
 
-                            <!-- Pagination Links -->
-                            <nav>
-                                <ul class="pagination pagination-sm">
+                            <!-- Pagination -->
+                            <?php
+                            $totalPages = ceil($applicantsTotal / $applicantsPerPage);
+                            $current    = $applicantsPage;
+                            $window     = 2;
+                            ?>
+                            <nav class="text-center">
+                                <ul class="pagination pagination-sm justify-content-center p-2">
+
+                                    <!-- Previous -->
+                                    <li class="page-item <?= $current <= 1 ? 'disabled' : '' ?>">
+                                        <a class="page-link" href="<?= current_url() ?>?<?= http_build_query(array_merge($filters, ['page' => $current - 1])) ?>">
+                                            &laquo; Prev
+                                        </a>
+                                    </li>
+
+                                    <!-- First page + ellipsis -->
+                                    <?php if ($current > $window + 2): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="<?= current_url() ?>?<?= http_build_query(array_merge($filters, ['page' => 1])) ?>">1</a>
+                                        </li>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <?php endif; ?>
+
+                                    <!-- Page window around current -->
                                     <?php
-                                    $totalPages = ceil($applicantsTotal / $applicantsPerPage);
-                                    for ($i = 1; $i <= $totalPages; $i++): ?>
-                                        <li class="page-item <?= $i == $applicantsPage ? 'active' : '' ?>">
+                                    $start = max(1, $current - $window);
+                                    $end   = min($totalPages, $current + $window);
+                                    for ($i = $start; $i <= $end; $i++): ?>
+                                        <li class="page-item <?= $i == $current ? 'active' : '' ?>">
                                             <a class="page-link" href="<?= current_url() ?>?<?= http_build_query(array_merge($filters, ['page' => $i])) ?>">
                                                 <?= $i ?>
                                             </a>
                                         </li>
                                     <?php endfor; ?>
+
+                                    <!-- Last page + ellipsis -->
+                                    <?php if ($current < $totalPages - $window - 1): ?>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="<?= current_url() ?>?<?= http_build_query(array_merge($filters, ['page' => $totalPages])) ?>"><?= $totalPages ?></a>
+                                        </li>
+                                    <?php endif; ?>
+
+                                    <!-- Next -->
+                                    <li class="page-item <?= $current >= $totalPages ? 'disabled' : '' ?>">
+                                        <a class="page-link" href="<?= current_url() ?>?<?= http_build_query(array_merge($filters, ['page' => $current + 1])) ?>">
+                                            Next &raquo;
+                                        </a>
+                                    </li>
+
                                 </ul>
                             </nav>
+
                         </div>
                     <?php else: ?>
                         <div class="text-center py-4">
@@ -208,7 +244,7 @@
 <!-- Custom CSS for smaller table fonts -->
 <style>
     .dashboard-table {
-        font-size: 0.85rem; /* smaller font */
+        font-size: 0.85rem;
     }
     .dashboard-table th, 
     .dashboard-table td {
