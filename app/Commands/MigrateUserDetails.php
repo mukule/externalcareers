@@ -4,24 +4,22 @@ namespace App\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
-use Exception;
 use Ramsey\Uuid\Uuid;
 
 class MigrateUserDetails extends BaseCommand
 {
-    protected $group = 'Migration';
-    protected $name = 'migrate:userdetails';
+    protected $group       = 'Migration';
+    protected $name        = 'migrate:userdetails';
     protected $description = 'Migrate old user details into users and user_details tables';
-    protected $batchSize = 5; // start small for testing
+    protected $batchSize   = 5;
 
     public function run(array $params)
     {
-        $db = \Config\Database::connect('default');
-
+        $db     = \Config\Database::connect('default');
         $lastId = $this->getLastProcessedId($db);
+
         CLI::write("Starting from old user ID: {$lastId}", 'yellow');
 
-        // 1️⃣ Fetch old users in batches
         $oldUsers = $db->table('users')
             ->where('old_user_id >', $lastId)
             ->where('old_user_id IS NOT', null)
@@ -31,23 +29,26 @@ class MigrateUserDetails extends BaseCommand
             ->getResult();
 
         if (empty($oldUsers)) {
-            CLI::write('Migration complete.', 'green');
+            CLI::write('No records to migrate. Done.', 'green');
             return;
         }
 
+        $lastProcessedId = $lastId; // track inside loop
+
         foreach ($oldUsers as $user) {
-            // 2️⃣ Fetch old details using old_user_id
             $oldDetails = $db->table('users_details_old')
                 ->where('user_id', $user->old_user_id)
                 ->get()
                 ->getRow();
 
             if (!$oldDetails) {
-                CLI::write("No old details found for old user ID: {$user->old_user_id}", 'red');
+                CLI::write("Skipping — no old details for old_user_id: {$user->old_user_id}", 'red');
+                $lastProcessedId = $user->old_user_id; // still advance past it
                 continue;
             }
 
-            // 3️⃣ Update names in users table
+            $db->transStart();
+
             $db->table('users')
                 ->where('id', $user->id)
                 ->update([
@@ -56,28 +57,26 @@ class MigrateUserDetails extends BaseCommand
                     'updated_at' => date('Y-m-d H:i:s'),
                 ]);
 
-            // 4️⃣ Prepare user_details data
             $detailsData = [
-                'user_id'                 => $user->id,
-                'national_id'             => $oldDetails->idno,
-                'gender_id'               => $oldDetails->gender,
-                'dob'                     => $oldDetails->dob,
-                'phone'                   => $oldDetails->phoneno,
-                'ethnicity_id'            => null, // skipping ethnicity
-                'county_of_origin_id'     => $oldDetails->county_birth,
-                'county_of_residence_id'  => $oldDetails->county_residence,
-                'country_of_birth_id'     => $oldDetails->country_birth,
-                'country_of_residence_id' => $oldDetails->country_residence,
-                'marital_status_id'       => $oldDetails->marital_status,
-                'field_of_study_id'       => $oldDetails->field_of_study_id,
-                'highest_level_of_study_id'=> $oldDetails->education_level_id,
-                'disability_status'       => $oldDetails->disability,
-                'disability_number'       => $oldDetails->disability_no,
-                'created_at'              => $oldDetails->date_created,
-                'updated_at'              => $oldDetails->date_modified ?? date('Y-m-d H:i:s'),
+                'user_id'                    => $user->id,
+                'national_id'                => $oldDetails->idno,
+                'gender_id'                  => $oldDetails->gender,
+                'dob'                        => $oldDetails->dob,
+                'phone'                      => $oldDetails->phoneno,
+                'ethnicity_id'               => null,
+                'county_of_origin_id'        => $oldDetails->county_birth,
+                'county_of_residence_id'     => $oldDetails->county_residence,
+                'country_of_birth_id'        => $oldDetails->country_birth,
+                'country_of_residence_id'    => $oldDetails->country_residence,
+                'marital_status_id'          => $oldDetails->marital_status,
+                'field_of_study_id'          => $oldDetails->field_of_study_id,
+                'highest_level_of_study_id'  => $oldDetails->education_level_id,
+                'disability_status'          => $oldDetails->disability,
+                'disability_number'          => $oldDetails->disability_no,
+                'created_at'                 => $oldDetails->date_created,
+                'updated_at'                 => $oldDetails->date_modified ?? date('Y-m-d H:i:s'),
             ];
 
-            // 5️⃣ Insert/update user_details
             $exists = $db->table('user_details')
                 ->where('user_id', $user->id)
                 ->get()
@@ -92,26 +91,33 @@ class MigrateUserDetails extends BaseCommand
                 $db->table('user_details')->insert($detailsData);
             }
 
-            CLI::write("Processed old user ID: {$user->old_user_id} (new user_id: {$user->id})", 'green');
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                CLI::write("Transaction failed for old_user_id: {$user->old_user_id}", 'red');
+                // Decide: break entirely, or skip and continue?
+                break;
+            }
+
+            $lastProcessedId = $user->old_user_id;
+            CLI::write("Processed old_user_id: {$user->old_user_id} → new user_id: {$user->id}", 'green');
         }
 
-        // 6️⃣ Save last processed old_user_id
-        $this->saveLastProcessedId($db, end($oldUsers)->old_user_id);
-
-        CLI::write("Batch processed up to old user ID: " . end($oldUsers)->old_user_id, 'green');
+        $this->saveLastProcessedId($db, $lastProcessedId);
+        CLI::write("Batch complete. Last processed old_user_id: {$lastProcessedId}", 'cyan');
     }
 
-    private function getLastProcessedId($db)
+    private function getLastProcessedId($db): int
     {
         $row = $db->table('migration_progress')
             ->where('name', 'user_details')
             ->get()
             ->getRow();
 
-        return $row ? (int)$row->last_id : 0;
+        return $row ? (int) $row->last_id : 0;
     }
 
-    private function saveLastProcessedId($db, $lastId)
+    private function saveLastProcessedId($db, int $lastId): void
     {
         $exists = $db->table('migration_progress')
             ->where('name', 'user_details')
