@@ -13,47 +13,23 @@ class MigrateUsers extends BaseCommand
     protected $name = 'migrate:users';
     protected $description = 'Migrate users from old_users_temp to users table in batches';
 
-    protected $batchSize = 300;
-
-    protected $options = [
-        'batch' => 'Number of users to process per run (default 500)',
-    ];
+    protected $batchSize = 100;
 
     public function run(array $params)
     {
-        // ----------------------------
-        // Step 0: Connect to DB
-        // ----------------------------
         try {
-            $newDb = \Config\Database::connect('default');
-            $newDb->query('SELECT 1')->getRow();
-            CLI::write('✅ Connected to database', 'green');
+            $db = \Config\Database::connect('default');
+            $db->query('SELECT 1');
+            CLI::write('Connected to database', 'green');
         } catch (Exception $e) {
-            CLI::error('❌ Database connection failed: ' . $e->getMessage());
+            CLI::error('DB connection failed: ' . $e->getMessage());
             return;
         }
 
-        // ----------------------------
-        // Step 0.5: Set batch size from CLI option
-        // ----------------------------
-        $batchOption = CLI::getOption('batch');
-        if ($batchOption && is_numeric($batchOption)) {
-            $this->batchSize = (int)$batchOption;
-            CLI::write("Batch size set to {$this->batchSize} via CLI option", 'yellow');
-        } else {
-            CLI::write("Using default batch size: {$this->batchSize}", 'yellow');
-        }
-
-        // ----------------------------
-        // Step 1: Get last processed ID
-        // ----------------------------
-        $lastId = $this->getLastProcessedId($newDb);
+        $lastId = $this->getLastProcessedId($db);
         CLI::write("Starting from ID: {$lastId}", 'yellow');
 
-        // ----------------------------
-        // Step 2: Fetch batch from temp table
-        // ----------------------------
-        $users = $newDb->table('old_users_temp')
+        $users = $db->table('old_users_temp')
             ->where('id >', $lastId)
             ->orderBy('id', 'ASC')
             ->limit($this->batchSize)
@@ -61,41 +37,50 @@ class MigrateUsers extends BaseCommand
             ->getResult();
 
         if (empty($users)) {
-            CLI::write('✅ Migration complete. No more users to process.', 'green');
+            CLI::write('Migration complete.', 'green');
             return;
         }
 
-        // ----------------------------
-        // Step 3: Check duplicates
-        // ----------------------------
-        $emails = array_column($users, 'emailadd');
-        $existing = $newDb->table('users')
-            ->select('email')
-            ->whereIn('email', $emails)
+        // Normalize emails from batch
+        $emails = array_map(function ($u) {
+            return strtolower(trim($u->emailadd));
+        }, $users);
+
+        // Fetch existing emails from DB (normalized)
+        $existing = $db->table('users')
+            ->select('LOWER(email) as email')
+            ->whereIn('LOWER(email)', $emails)
             ->get()
             ->getResultArray();
 
         $existingEmails = array_column($existing, 'email');
 
-        // ----------------------------
-        // Step 4: Prepare insert data
-        // ----------------------------
         $insertData = [];
+        $seenEmails = []; // prevent duplicates within batch
 
         foreach ($users as $u) {
-            if (in_array($u->emailadd, $existingEmails)) {
-                CLI::write("⚠️ Skipping duplicate: {$u->emailadd}", 'yellow');
+            $email = strtolower(trim($u->emailadd));
+
+            if (empty($email)) {
+                CLI::write("Skipping empty email (ID: {$u->id})", 'red');
                 continue;
             }
 
-            $randomPassword = bin2hex(random_bytes(4)); // 8-char temp password
+            if (in_array($email, $existingEmails) || in_array($email, $seenEmails)) {
+                CLI::write("Skipping duplicate: {$email}", 'yellow');
+                continue;
+            }
+
+            $seenEmails[] = $email;
+
+            $randomPassword = bin2hex(random_bytes(4));
 
             $insertData[] = [
                 'uuid'             => Uuid::uuid4()->toString(),
                 'old_user_id'      => $u->id,
                 'first_name'       => null,
                 'last_name'        => null,
-                'email'            => $u->emailadd,
+                'email'            => $email,
                 'password'         => password_hash($randomPassword, PASSWORD_DEFAULT),
                 'activation_token' => $u->activation_code,
                 'role'             => 'applicant',
@@ -106,27 +91,21 @@ class MigrateUsers extends BaseCommand
                 'created_at'       => $u->date_created,
                 'updated_at'       => date('Y-m-d H:i:s'),
             ];
-
-            CLI::write("Will insert: {$u->emailadd} | temp password: {$randomPassword}", 'yellow');
         }
 
-        // ----------------------------
-        // Step 5: Insert batch
-        // ----------------------------
+        // SAFE INSERT (no crash on duplicates)
         if (!empty($insertData)) {
-            $newDb->table('users')->insertBatch($insertData);
-            CLI::write('✅ Inserted ' . count($insertData) . ' users.', 'green');
+            $db->table('users')->ignore(true)->insertBatch($insertData);
+            CLI::write('Inserted (or skipped duplicates safely): ' . count($insertData), 'green');
         } else {
-            CLI::write('⚠️ No new users to insert (all duplicates).', 'yellow');
+            CLI::write('Nothing to insert.', 'yellow');
         }
 
-        // ----------------------------
-        // Step 6: Update last processed ID
-        // ----------------------------
+        // Move forward regardless (since duplicates are now safely ignored)
         $newLastId = end($users)->id;
-        $this->saveLastProcessedId($newDb, $newLastId);
-        CLI::write("✅ Processed up to ID: {$newLastId}", 'green');
-        CLI::write('Batch complete. Run again to continue migration.', 'green');
+        $this->saveLastProcessedId($db, $newLastId);
+
+        CLI::write("Processed up to ID: {$newLastId}", 'green');
     }
 
     private function getLastProcessedId($db)
@@ -155,8 +134,3 @@ class MigrateUsers extends BaseCommand
         }
     }
 }
-
-
-
-
-
