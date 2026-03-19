@@ -221,4 +221,17 @@ public function deleteUser(int $userId): bool
 
 
 
+public function findByEmailAndNationalId(string $email, string $nationalId): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('users.*')
+            ->join('user_details', 'user_details.user_id = users.id', 'left')
+            ->where('users.email', $email)
+            ->where('user_details.national_id', $nationalId)
+            ->get()
+            ->getRowArray();
+    }
+
+
+
 }

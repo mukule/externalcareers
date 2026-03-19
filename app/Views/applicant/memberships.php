@@ -9,21 +9,20 @@
         <div class="card-body">
             <!-- Title and Add Button on same row -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="card-title mb-0">My Memberships</h4>
-                <a href="<?= base_url('applicant/membership/create') ?>" class="btn btn-primary">Add New Membership</a>
+                <h4 class="card-title mb-0">Professional Memberships</h4>
+                <a href="<?= base_url('applicant/membership/create') ?>" class="btn btn-outline-primary">Add New Membership</a>
             </div>
 
-          
             <!-- Responsive Membership Table -->
             <div class="table-responsive">
-                <table class="table table-bordered table-striped mb-4">
+                <table class="table table-bordered table-striped mb-4" style="font-size: 0.9rem;">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
                             <th>Name</th>
+                            <th>Certifying Body</th>
                             <th>Membership No</th>
-                            <th>Joined Date</th>
-                            <th>Last Date</th>
+                            <th>Joined Year</th>
                             <th>Certificate</th>
                             <th>Actions</th>
                         </tr>
@@ -34,9 +33,9 @@
                                 <tr>
                                     <td><?= $i + 1 ?></td>
                                     <td><?= esc($membership['name']) ?></td>
+                                    <td><?= esc($membership['body_name'] ?? 'N/A') ?></td>
                                     <td><?= esc($membership['membership_no'] ?? 'N/A') ?></td>
                                     <td><?= esc($membership['joined_date'] ?? 'N/A') ?></td>
-                                    <td><?= esc($membership['expiry_date'] ?? 'N/A') ?></td>
                                     <td>
                                         <?php if($membership['certificate']): ?>
                                             <a href="<?= base_url('uploads/memberships/' . $membership['certificate']) ?>" target="_blank">View PDF</a>

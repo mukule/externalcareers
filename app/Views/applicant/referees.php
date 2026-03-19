@@ -3,15 +3,15 @@
 
 <div class="container py-5">
 
-    <?= $this->include('partials/prof_nav', ['currentStep' => 7]) ?>
+    <?= $this->include('partials/prof_nav', ['currentStep' => 8]) ?>
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
 
             <!-- Title + Add Button -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="card-title mb-0">My Referees</h4>
-                <a href="<?= base_url('applicant/referees/create') ?>" class="btn btn-primary">Add New Referee</a>
+                <h4 class="card-title mb-0">Referees</h4>
+                <a href="<?= base_url('applicant/referees/create') ?>" class="btn btn-outline-primary">Add New Referee</a>
             </div>
 
            

@@ -3,7 +3,7 @@
 
 <div class="container py-5">
 
-    <?= $this->include('partials/prof_nav', ['currentStep' => 3]) ?>
+    <?= $this->include('partials/prof_nav', ['currentStep' => 4]) ?>
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
@@ -26,23 +26,33 @@
 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label for="name" class="form-label">Membership Name</label>
-                        <input type="text" class="form-control" name="name" id="name" placeholder="Membership name" value="<?= $membership['name'] ?? '' ?>" required>
+                        <label for="name" class="form-label">Membership Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="name" placeholder="Membership name" value="<?= old('name', $membership['name'] ?? '') ?>" required>
                     </div>
                     <div class="col-md-6">
                         <label for="membership_no" class="form-label">Membership Number</label>
-                        <input type="text" class="form-control" name="membership_no" id="membership_no" placeholder="Membership number" value="<?= $membership['membership_no'] ?? '' ?>">
+                        <input type="text" class="form-control" name="membership_no" id="membership_no" placeholder="Membership number" value="<?= old('membership_no', $membership['membership_no'] ?? '') ?>">
                     </div>
                 </div>
 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label for="joined_date" class="form-label">Joined Year</label>
-                        <input type="number" class="form-control" name="joined_date" id="joined_date" placeholder="YYYY" min="1900" max="<?= date('Y') ?>" value="<?= $membership['joined_date'] ?? '' ?>" required>
+                        <label for="certifying_body_id" class="form-label">Certifying Body <span class="text-danger">*</span></label>
+                        <select name="certifying_body_id" id="certifying_body_id" class="form-select" required>
+                            <option value="">Select Body</option>
+                            <?php if(!empty($bodies)): ?>
+                                <?php foreach($bodies as $body): ?>
+                                    <option value="<?= esc($body['id']) ?>" <?= old('certifying_body_id', $membership['certifying_body_id'] ?? '') == $body['id'] ? 'selected' : '' ?>>
+                                        <?= esc($body['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
                     </div>
+
                     <div class="col-md-6">
-                        <label for="expiry_date" class="form-label">Last Year as a Member (optional)</label>
-                        <input type="number" class="form-control" name="expiry_date" id="expiry_date" placeholder="YYYY" min="1900" max="<?= date('Y') ?>" value="<?= $membership['expiry_date'] ?? '' ?>">
+                        <label for="joined_date" class="form-label">Joined Year <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" name="joined_date" id="joined_date" placeholder="YYYY" min="1900" max="<?= date('Y') ?>" value="<?= old('joined_date', $membership['joined_date'] ?? '') ?>" required>
                     </div>
                 </div>
 

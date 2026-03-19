@@ -3,48 +3,30 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
-use Ramsey\Uuid\Uuid;
 
 class CountyModel extends Model
 {
-    protected $table      = 'counties';
-    protected $primaryKey = 'id';
+    protected $table      = 'county';      // table name
+    protected $primaryKey = 'id';          // primary key
 
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
 
     protected $allowedFields = [
-        'uuid',
-        'name',
-        'code',
+        'country_id',
+        'title',
         'active',
+        'date_created',
     ];
 
-    protected $useTimestamps = true;
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
+    protected $useTimestamps = false;      // using custom date_created
 
-    // Automatically generate UUID before insert
-    protected $beforeInsert = ['generateUUID'];
 
-    protected function generateUUID(array $data)
-    {
-        if (!isset($data['data']['uuid'])) {
-            $data['data']['uuid'] = Uuid::uuid4()->toString();
-        }
-        return $data;
-    }
 
-    public function getCountyByUUID(string $uuid)
+    public function getCountyNameById(int $id): ?string
 {
-    return $this->where('uuid', $uuid)->first();
+    $row = $this->find($id);
+    return $row ? $row['title'] : null;
 }
-
-public function getCountyNameById(int $id): ?string
-{
-    $county = $this->select('name')->where('id', $id)->first();
-    return $county['name'] ?? null;
-}
-
 }

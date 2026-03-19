@@ -23,7 +23,7 @@ class UserWorkExperienceController extends BaseController
         return view('applicant/work_experience', [
             'title'       => 'My Work Experience',
             'experiences' => $experiences,
-            'currentStep' => 6
+            'currentStep' => 7
         ]);
     }
 
@@ -34,7 +34,7 @@ class UserWorkExperienceController extends BaseController
             'title'      => 'Add Work Experience',
             'action'     => base_url('applicant/work-experience/store'),
             'experience' => null,
-            'currentStep' => 6
+            'currentStep' => 7
         ]);
     }
 
@@ -47,6 +47,8 @@ class UserWorkExperienceController extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules([
             'company_name'      => 'required|string|max_length[255]',
+            'company_address'   => 'permit_empty|string|max_length[255]',
+            'company_phone'     => 'permit_empty|string|max_length[50]',
             'position'          => 'required|string|max_length[255]',
             'start_date'        => 'required|valid_date',
             'end_date'          => 'permit_empty|valid_date',
@@ -59,11 +61,10 @@ class UserWorkExperienceController extends BaseController
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
-        // Mutually exclusive: if currently working, clear end_date
         $currentlyWorking = !empty($data['currently_working']) ? 1 : 0;
         $endDate = $currentlyWorking ? null : ($data['end_date'] ?? null);
 
-        // Handle file upload
+        // Handle reference letter upload
         $referenceFile = null;
         if ($file = $this->request->getFile('reference_letter')) {
             if ($file->isValid() && !$file->hasMoved()) {
@@ -76,6 +77,8 @@ class UserWorkExperienceController extends BaseController
             'uuid'              => uniqid(),
             'user_id'           => $userId,
             'company_name'      => $data['company_name'],
+            'company_address'   => $data['company_address'] ?? null,
+            'company_phone'     => $data['company_phone'] ?? null,
             'position'          => $data['position'],
             'start_date'        => $data['start_date'],
             'end_date'          => $endDate,
@@ -102,7 +105,7 @@ class UserWorkExperienceController extends BaseController
             'title'      => 'Edit Work Experience',
             'action'     => base_url('applicant/work-experience/update'),
             'experience' => $experience,
-            'currentStep' => 6
+            'currentStep' => 7
         ]);
     }
 
@@ -120,6 +123,8 @@ class UserWorkExperienceController extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules([
             'company_name'      => 'required|string|max_length[255]',
+            'company_address'   => 'permit_empty|string|max_length[255]',
+            'company_phone'     => 'permit_empty|string|max_length[50]',
             'position'          => 'required|string|max_length[255]',
             'start_date'        => 'required|valid_date',
             'end_date'          => 'permit_empty|valid_date',
@@ -132,15 +137,13 @@ class UserWorkExperienceController extends BaseController
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
-        // Mutually exclusive: if currently working, clear end_date
         $currentlyWorking = !empty($data['currently_working']) ? 1 : 0;
         $endDate = $currentlyWorking ? null : ($data['end_date'] ?? null);
 
-        // Handle file upload
+        // Handle reference letter upload
         $referenceFile = $experience['reference_file'] ?? null;
         if ($file = $this->request->getFile('reference_letter')) {
             if ($file->isValid() && !$file->hasMoved()) {
-                // Delete old file if exists
                 if ($referenceFile && file_exists(ROOTPATH . 'public/uploads/work_experience/' . $referenceFile)) {
                     unlink(ROOTPATH . 'public/uploads/work_experience/' . $referenceFile);
                 }
@@ -151,6 +154,8 @@ class UserWorkExperienceController extends BaseController
 
         $this->workModel->update($data['id'], [
             'company_name'      => $data['company_name'],
+            'company_address'   => $data['company_address'] ?? null,
+            'company_phone'     => $data['company_phone'] ?? null,
             'position'          => $data['position'],
             'start_date'        => $data['start_date'],
             'end_date'          => $endDate,
@@ -169,7 +174,6 @@ class UserWorkExperienceController extends BaseController
         $experience = $this->workModel->where(['uuid' => $uuid, 'user_id' => $userId])->first();
 
         if ($experience) {
-            // Delete file if exists
             if (!empty($experience['reference_file']) && file_exists(ROOTPATH . 'public/uploads/work_experience/' . $experience['reference_file'])) {
                 unlink(ROOTPATH . 'public/uploads/work_experience/' . $experience['reference_file']);
             }

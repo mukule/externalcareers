@@ -304,22 +304,24 @@ private function generateRandomPassword(int $length = 10): string
 
     public function sendResetLink()
 {
-    $email = trim($this->request->getPost('email'));
+    $email = strtolower(trim($this->request->getPost('email')));
+    $nationalId = strtoupper(trim($this->request->getPost('national_id')));
 
     $userModel = new \App\Models\UserModel();
-    $user = $userModel->where('email', $email)->first();
+    
+    // Find user where both email AND national ID match
+    $user = $userModel->findByEmailAndNationalId($email, $nationalId);
 
     if (!$user) {
-        return redirect()->back()->with('error', 'No user found with that email address.');
+        // Generic message to prevent enumeration
+        return redirect()->back()->with('error', 'Email and National ID do not match any User Account.');
     }
 
-    // Since 'text' and your 'custom_email' helpers are autoloaded, 
-    // we can use these functions directly.
+    // Generate temporary password
     $newPassword = random_string('alnum', 10);
     $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
-    // 1. Update the database.
-    // We set password_changed to 0 so the AuthFilter forces a reset on login.
+    // Update user password and force reset on next login
     $updated = $userModel->update($user['id'], [
         'password'         => $hashedPassword,
         'password_changed' => 0, 
@@ -327,10 +329,10 @@ private function generateRandomPassword(int $length = 10): string
     ]);
 
     if (!$updated) {
-        return redirect()->back()->with('error', 'Database update failed.');
+        return redirect()->back()->with('error', 'An Error Occured');
     }
 
-    
+    // Prepare email
     $loginUrl = base_url('/login');
     $subject  = 'Password Reset Request - Kengen Recruitment Portal';
     
@@ -351,14 +353,14 @@ private function generateRandomPassword(int $length = 10): string
         </div>
     ";
 
-    // 3. Send using your autoloaded helper function
+    // Send email using helper
     $status = send_email($email, $subject, $message);
 
     if ($status === true) {
         return redirect()->back()->with('success', 'A new password has been sent to ' . $email);
-    } 
+    }
 
-    // If it's not true, $status contains the debugger string from your helper
+    // Log error if email fails
     log_message('error', "Email failed to $email. Debug: " . $status);
     return redirect()->back()->with('error', 'Password reset, but email delivery failed. Please contact admin.');
 }

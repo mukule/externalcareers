@@ -37,7 +37,7 @@ class UserCertificationController extends BaseController
         return view('applicant/certifications', [
             'title'          => 'My Certifications',
             'certifications' => $certifications,
-            'currentStep'    => 5
+            'currentStep'    => 6
         ]);
     }
 
@@ -51,7 +51,7 @@ class UserCertificationController extends BaseController
             'action'        => base_url('applicant/certification/store'),
             'certification' => null,
             'bodies'        => $bodies,
-            'currentStep'   => 5
+            'currentStep'   => 6
         ]);
     }
 
@@ -130,7 +130,7 @@ public function edit($uuid)
         'action'        => base_url('applicant/certification/update'),
         'certification' => $cert,
         'bodies'        => $bodies,
-        'currentStep'   => 5
+        'currentStep'   => 6
     ]);
 }
 

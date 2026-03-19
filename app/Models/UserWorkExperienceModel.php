@@ -15,6 +15,8 @@ class UserWorkExperienceModel extends Model
         'position',
         'start_date',
         'end_date',
+        'company_address',  
+        'company_phone',
         'currently_working',
         'responsibilities',
         'reference_file',

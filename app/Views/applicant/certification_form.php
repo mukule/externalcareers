@@ -26,7 +26,7 @@
                 <div class="row mb-3">
                     <!-- Certification Name -->
                     <div class="col-md-6">
-                        <label for="name" class="form-label">Certification Name</label>
+                        <label for="name" class="form-label">Certificate Title</label>
                         <input type="text" class="form-control" name="name" id="name" value="<?= $certification['name'] ?? '' ?>" required>
                     </div>
 

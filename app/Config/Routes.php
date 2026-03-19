@@ -170,6 +170,22 @@ $routes->group('applicant', ['filter' => 'role:applicant'], function ($routes) {
     $routes->post('education/update', 'UserEducationController::update', ['as' => 'applicant.education.update']);
     $routes->get('education/delete/(:any)', 'UserEducationController::delete/$1', ['as' => 'applicant.education.delete']);
 
+    // Basic Education Routes
+    $routes->get('basic-education', 'UserBasicEducationController::index', ['as' => 'applicant.basic_education']);
+    $routes->get('basic-education/create', 'UserBasicEducationController::create', ['as' => 'applicant.basic_education.create']);
+    $routes->post('basic-education/store', 'UserBasicEducationController::store', ['as' => 'applicant.basic_education.store']);
+    $routes->get('basic-education/edit/(:any)', 'UserBasicEducationController::edit/$1', ['as' => 'applicant.basic_education.edit']);
+    $routes->post('basic-education/update', 'UserBasicEducationController::update', ['as' => 'applicant.basic_education.update']);
+    $routes->get('basic-education/delete/(:any)', 'UserBasicEducationController::delete/$1', ['as' => 'applicant.basic_education.delete']);
+
+    // Higher Education Routes
+    $routes->get('higher-education', 'UserHigherEducationController::index', ['as' => 'applicant.higher_education']);
+    $routes->get('higher-education/create', 'UserHigherEducationController::create', ['as' => 'applicant.higher_education.create']);
+    $routes->post('higher-education/store', 'UserHigherEducationController::store', ['as' => 'applicant.higher_education.store']);
+    $routes->get('higher-education/edit/(:any)', 'UserHigherEducationController::edit/$1', ['as' => 'applicant.higher_education.edit']);
+    $routes->post('higher-education/update', 'UserHigherEducationController::update', ['as' => 'applicant.higher_education.update']);
+    $routes->get('higher-education/delete/(:any)', 'UserHigherEducationController::delete/$1', ['as' => 'applicant.higher_education.delete']);
+
     // Step 4: Memberships
     $routes->get('membership', 'UserMembershipController::index', ['as' => 'applicant.membership']);
     $routes->get('membership/create', 'UserMembershipController::create', ['as' => 'applicant.membership.create']);

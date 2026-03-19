@@ -3,7 +3,7 @@
 
 <div class="container py-5">
 
-    <?= $this->include('partials/prof_nav', ['currentStep' => 4]) ?>
+    <?= $this->include('partials/prof_nav', ['currentStep' => 7]) ?>
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
@@ -38,22 +38,46 @@
                 </div>
 
                 <div class="row mb-3">
+                    <!-- Company Address -->
+                    <div class="col-md-6">
+                        <label for="company_address" class="form-label">Company Address</label>
+                        <input type="text" class="form-control" name="company_address" id="company_address" placeholder="Enter company address" value="<?= $experience['company_address'] ?? '' ?>">
+                    </div>
+
+                    <!-- Company Phone -->
+                    <div class="col-md-6">
+                        <label for="company_phone" class="form-label">Company Phone</label>
+                        <input type="text" class="form-control" name="company_phone" id="company_phone" placeholder="Enter company phone" value="<?= $experience['company_phone'] ?? '' ?>">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
                     <!-- Start Date -->
                     <div class="col-md-6">
                         <label for="start_date" class="form-label">Date Started</label>
-                        <input type="date" class="form-control" name="start_date" id="start_date" placeholder="YYYY-MM-DD" value="<?= $experience['start_date'] ?? '' ?>" required>
+                        <input type="date" class="form-control" name="start_date" id="start_date" value="<?= $experience['start_date'] ?? '' ?>" required>
                     </div>
 
+                    <!-- Currently Working Checkbox -->
+                    <div class="col-md-6 d-flex align-items-center mt-4">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="currently_working" name="currently_working" value="1" <?= isset($experience['currently_working']) && $experience['currently_working'] ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="currently_working">Is this Your Current Job</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
                     <!-- End Date -->
                     <div class="col-md-6">
-                        <label for="end_date" class="form-label">Last Day (Optional)</label>
-                        <input type="date" class="form-control" name="end_date" id="end_date" placeholder="YYYY-MM-DD" value="<?= $experience['end_date'] ?? '' ?>">
+                        <label for="end_date" class="form-label">Date ended (Optional)</label>
+                        <input type="date" class="form-control" name="end_date" id="end_date" value="<?= $experience['end_date'] ?? '' ?>" <?= isset($experience['currently_working']) && $experience['currently_working'] ? 'disabled' : '' ?>>
                     </div>
                 </div>
 
                 <!-- Responsibilities / Job Description -->
                 <div class="mb-3">
-                    <label for="responsibilities" class="form-label">Responsibilities / Job Description</label>
+                    <label for="responsibilities" class="form-label">5 Key Responsibilities (Max 500 characters)</label>
                     <textarea class="form-control" name="responsibilities" id="description" rows="5" placeholder="Describe your key responsibilities, projects, or achievements"><?= $experience['responsibilities'] ?? '' ?></textarea>
                 </div>
 
@@ -61,15 +85,9 @@
                 <div class="mb-3">
                     <label for="reference_letter" class="form-label">Reference Letter (PDF, max 2MB)</label>
                     <input type="file" class="form-control" name="reference_letter" id="reference_letter" accept="application/pdf">
-                    <?php if(isset($experience['reference_letter']) && $experience['reference_letter']): ?>
-                        <small>Current: <a href="<?= base_url('uploads/work_experience/' . $experience['reference_letter']) ?>" target="_blank">View PDF</a></small>
+                    <?php if(isset($experience['reference_file']) && $experience['reference_file']): ?>
+                        <small>Current: <a href="<?= base_url('uploads/work_experience/' . $experience['reference_file']) ?>" target="_blank">View PDF</a></small>
                     <?php endif; ?>
-                </div>
-
-                <!-- Currently Working Here -->
-                <div class="form-check mb-3">
-                    <input type="checkbox" class="form-check-input" id="currently_working" name="currently_working" value="1" <?= isset($experience['currently_working']) && $experience['currently_working'] ? 'checked' : '' ?>>
-                    <label class="form-check-label" for="currently_working">I am currently working here</label>
                 </div>
 
                 <button type="submit" class="btn btn-primary"><?= isset($experience) ? 'Update Experience' : 'Add Experience' ?></button>
@@ -77,7 +95,21 @@
             </form>
         </div>
     </div>
-
 </div>
+
+<!-- JS to toggle End Date field -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const currentlyCheckbox = document.getElementById('currently_working');
+    const endDateField = document.getElementById('end_date');
+
+    currentlyCheckbox.addEventListener('change', function() {
+        endDateField.disabled = this.checked;
+        if(this.checked) {
+            endDateField.value = '';
+        }
+    });
+});
+</script>
 
 <?= $this->endSection() ?>

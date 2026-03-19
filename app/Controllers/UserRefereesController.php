@@ -34,7 +34,7 @@ class UserRefereesController extends BaseController
         return view('applicant/referees', [
             'title'    => 'My Referees',
             'referees' => $referees,
-            'currentStep' => 7
+            'currentStep' => 8
         ]);
     }
 
@@ -44,7 +44,7 @@ class UserRefereesController extends BaseController
         return view('applicant/referee_form', [
             'title'  => 'Add Referee',
             'action' => base_url('applicant/referees/store'),
-            'currentStep' => 7
+            'currentStep' => 8
         ]);
     }
 
@@ -98,7 +98,7 @@ class UserRefereesController extends BaseController
             'title'   => 'Edit Referee',
             'action'  => base_url('applicant/referees/store'),
             'referee' => $referee,
-            'currentStep' => 7
+            'currentStep' => 8
         ]);
     }
 

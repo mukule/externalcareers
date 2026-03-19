@@ -10,7 +10,7 @@
 
     <link href="<?= base_url('css/styles.css') ?>" rel="stylesheet" />
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
-<link rel="icon" type="image/png" href="<?= base_url('favicon.ico') ?>" />
+    <link rel="icon" type="image/png" href="<?= base_url('favicon.ico') ?>" />
     <style>
         .forgot-link a {
             text-decoration: none;
@@ -29,7 +29,7 @@
             min-height: 100vh;
         }
 
-         .form-floating > .form-control {
+        .form-floating > .form-control {
             height: 38px !important;
             min-height: 38px !important;
             font-size: 0.8rem;
@@ -38,7 +38,6 @@
         .form-floating > label {
             font-size: 0.75rem;
         }
-        
     </style>
 </head>
 <body class="bg-blur">
@@ -51,8 +50,8 @@
                             <div class="card shadow-lg border-0 rounded-lg mt-5">
                                 <div class="card-header text-center border-0">
                                     <img src="<?= base_url('logo.png') ?>" alt="<?= esc($app_name) ?>" class="mb-3" style="max-width: 150px;" />
-                                    <h3 class="text-center font-weight-light"><?= esc($heading ?? 'Reset Your Password') ?></h3>
-                                    <p class="text-center text-muted mb-0"><?= esc($subheading ?? 'Enter your registered email to reset your password') ?></p>
+                                    
+                                    <p class="text-center text-muted mb-0"><?= esc($subheading ?? 'Enter your registered email and national ID to reset your password') ?></p>
                                 </div>
                                 <div class="card-body">
                                     <!-- Include flash messages -->
@@ -60,6 +59,7 @@
 
                                     <form method="post" action="<?= base_url('/forgot-password') ?>" autocomplete="off">
                                         <?= csrf_field() ?>
+
                                         <div class="form-floating mb-3">
                                             <input 
                                                 class="form-control" 
@@ -71,13 +71,26 @@
                                                 required />
                                             <label for="inputEmail">Email address</label>
                                         </div>
+
+                                        <div class="form-floating mb-3">
+                                            <input 
+                                                class="form-control" 
+                                                id="inputID" 
+                                                type="text" 
+                                                name="national_id" 
+                                                placeholder="National ID" 
+                                                autocomplete="off" 
+                                                required />
+                                            <label for="inputID">National ID</label>
+                                        </div>
+
                                         <div class="btn-center mt-4 mb-0">
                                             <button type="submit" class="btn btn-primary">Reset Password</button>
                                         </div>
                                     </form>
 
-                                    <div class="forgot-link text-center mt-4">
-                                        <a href="<?= base_url('login') ?>">← Back to Login</a>
+                                    <div class="text-center mt-4">
+                                        <a href="<?= base_url('login') ?>">Remembered Password? Login</a>
                                     </div>
                                 </div>
                             </div>

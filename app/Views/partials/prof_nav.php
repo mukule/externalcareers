@@ -4,23 +4,25 @@ $currentStep = $currentStep ?? 1;
 $stepUrls = [
     1 => base_url('applicant/profile'),
     2 => base_url('applicant/professional-statement'),
-    3 => base_url('applicant/education'),
-    4 => base_url('applicant/membership'),
-    5 => base_url('applicant/certification'),
-    6 => base_url('applicant/work-experience'),
-    7 => base_url('applicant/referees'),
-    8 => base_url('applicant/profile-review')
+    3 => base_url('applicant/basic-education'),
+    4 => base_url('applicant/higher-education'),
+    5 => base_url('applicant/membership'),
+    6 => base_url('applicant/certification'),
+    7 => base_url('applicant/work-experience'),
+    8 => base_url('applicant/referees'),
+    9 => base_url('applicant/profile-review')
 ];
 
 $steps = [
     1 => 'Basic Details',
     2 => 'Professional Statement',
-    3 => 'Education',
-    4 => 'Memberships',
-    5 => 'Certifications',
-    6 => 'Work Experience',
-    7 => 'Referees',
-    8 => 'Resume Review'
+    3 => 'Basic Education',
+    4 => 'College/University',
+    5 => 'Memberships',
+    6 => 'Certifications',
+    7 => 'Work Experience',
+    8 => 'Referees',
+    9 => 'Resume Review'
 ];
 ?>
 
