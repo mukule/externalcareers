@@ -11,7 +11,7 @@ class MigrateUserDetails extends BaseCommand
     protected $group       = 'Migration';
     protected $name        = 'migrate:userdetails';
     protected $description = 'Migrate old user details into users and user_details tables';
-    protected $batchSize   = 100;
+    protected $batchSize   = 200;
 
     public function run(array $params)
     {
