@@ -80,9 +80,9 @@
                         <div class="col-md-6"><strong>Disability Number:</strong> <?= esc($details['disability_number'] ?? '') ?></div>
                         <div class="col-md-6"><strong>Disability Type:</strong> <?= esc($details['disability_type'] ?? '') ?></div>
                     <?php endif; ?>
-                    <div class="col-md-6"><strong>Status:</strong> <?= !empty($applicant['active']) ? 'Active' : 'Inactive' ?></div>
-                    <div class="col-md-6"><strong>Registered:</strong> <?= !empty($applicant['created_at']) ? date('d M Y, H:i', strtotime($applicant['created_at'])) : '-' ?></div>
-                    <div class="col-md-6"><strong>Last Login:</strong> <?= !empty($applicant['last_login']) ? date('d M Y, H:i', strtotime($applicant['last_login'])) : '-' ?></div>
+                    <div class="col-md-6"><strong>Status:</strong> <?= !empty($resume['active']) ? 'Active' : 'Inactive' ?></div>
+                    <div class="col-md-6"><strong>Registered:</strong> <?= !empty($resume['created_at']) ? date('d M Y, H:i', strtotime($resume['created_at'])) : '-' ?></div>
+                    <div class="col-md-6"><strong>Last Login:</strong> <?= !empty($resume['last_login']) ? date('d M Y, H:i', strtotime($resume['last_login'])) : '-' ?></div>
                       <div class="col-md-6"><strong>Highest Education Level:</strong> <?= esc($details['highest_edu_level'] ?? 'N/A') ?></div>
                 <div class="col-md-6"><strong>Specialization:</strong> <?= esc($details['study_field'] ?? '-') ?></div>
                 </div>
