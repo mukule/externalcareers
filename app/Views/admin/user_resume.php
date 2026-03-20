@@ -62,8 +62,8 @@
             <h2 class="section-title">Bio Data</h2>
             <div class="section-content">
                 <div class="row g-2">
-                    <div class="col-md-6"><strong>Full Name:</strong> <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?></div>
-                    <div class="col-md-6"><strong>Email:</strong> <?= esc($user['email'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Full Name:</strong> <?= esc(trim(($resume['first_name'] ?? '') . ' ' . ($resume['last_name'] ?? ''))) ?></div>
+                    <div class="col-md-6"><strong>Email:</strong> <?= esc($resume['email'] ?? '') ?></div>
                     <div class="col-md-6"><strong>Phone:</strong> <?= esc($details['phone'] ?? '') ?></div>
                     <div class="col-md-6"><strong>Gender:</strong> <?= esc($details['gender_name'] ?? '') ?></div>
                     <div class="col-md-6"><strong>Date of Birth:</strong> <?= esc($details['dob'] ?? '') ?></div>
@@ -80,9 +80,9 @@
                         <div class="col-md-6"><strong>Disability Number:</strong> <?= esc($details['disability_number'] ?? '') ?></div>
                         <div class="col-md-6"><strong>Disability Type:</strong> <?= esc($details['disability_type'] ?? '') ?></div>
                     <?php endif; ?>
-                    <div class="col-md-6"><strong>Status:</strong> <?= !empty($user['active']) ? 'Active' : 'Inactive' ?></div>
-                    <div class="col-md-6"><strong>Registered:</strong> <?= !empty($user['created_at']) ? date('d M Y, H:i', strtotime($user['created_at'])) : '-' ?></div>
-                    <div class="col-md-6"><strong>Last Login:</strong> <?= !empty($user['last_login']) ? date('d M Y, H:i', strtotime($user['last_login'])) : '-' ?></div>
+                    <div class="col-md-6"><strong>Status:</strong> <?= !empty($applicant['active']) ? 'Active' : 'Inactive' ?></div>
+                    <div class="col-md-6"><strong>Registered:</strong> <?= !empty($applicant['created_at']) ? date('d M Y, H:i', strtotime($applicant['created_at'])) : '-' ?></div>
+                    <div class="col-md-6"><strong>Last Login:</strong> <?= !empty($applicant['last_login']) ? date('d M Y, H:i', strtotime($applicant['last_login'])) : '-' ?></div>
                       <div class="col-md-6"><strong>Highest Education Level:</strong> <?= esc($details['highest_edu_level'] ?? 'N/A') ?></div>
                 <div class="col-md-6"><strong>Specialization:</strong> <?= esc($details['study_field'] ?? '-') ?></div>
                 </div>
