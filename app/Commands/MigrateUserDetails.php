@@ -11,7 +11,7 @@ class MigrateUserDetails extends BaseCommand
     protected $group       = 'Migration';
     protected $name        = 'migrate:userdetails';
     protected $description = 'Migrate old user details into users and user_details tables';
-    protected $batchSize   = 5;
+    protected $batchSize   = 100;
 
     public function run(array $params)
     {
@@ -33,77 +33,107 @@ class MigrateUserDetails extends BaseCommand
             return;
         }
 
-        $lastProcessedId = $lastId; // track inside loop
+        $lastProcessedId = $lastId;
 
         foreach ($oldUsers as $user) {
-            $oldDetails = $db->table('users_details_old')
-                ->where('user_id', $user->old_user_id)
-                ->get()
-                ->getRow();
 
-            if (!$oldDetails) {
-                CLI::write("Skipping — no old details for old_user_id: {$user->old_user_id}", 'red');
-                $lastProcessedId = $user->old_user_id; // still advance past it
-                continue;
-            }
+            try {
+                $oldDetails = $db->table('users_details_old')
+                    ->where('user_id', $user->old_user_id)
+                    ->get()
+                    ->getRow();
 
-            $db->transStart();
+                if (!$oldDetails) {
+                    CLI::write("Skipping — no old details for old_user_id: {$user->old_user_id}", 'red');
+                    $lastProcessedId = $user->old_user_id;
+                    continue;
+                }
 
-            $db->table('users')
-                ->where('id', $user->id)
-                ->update([
-                    'first_name' => $oldDetails->fname,
-                    'last_name'  => $oldDetails->sname,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
+                $db->transStart();
 
-            $detailsData = [
-                'user_id'                    => $user->id,
-                'national_id'                => $oldDetails->idno,
-                'gender_id'                  => $oldDetails->gender,
-                'dob'                        => $oldDetails->dob,
-                'phone'                      => $oldDetails->phoneno,
-                'ethnicity_id'               => null,
-                'county_of_origin_id'        => $oldDetails->county_birth,
-                'county_of_residence_id'     => $oldDetails->county_residence,
-                'country_of_birth_id'        => $oldDetails->country_birth,
-                'country_of_residence_id'    => $oldDetails->country_residence,
-                'marital_status_id'          => $oldDetails->marital_status,
-                'field_of_study_id'          => $oldDetails->field_of_study_id,
-                'highest_level_of_study_id'  => $oldDetails->education_level_id,
-                'disability_status'          => $oldDetails->disability,
-                'disability_number'          => $oldDetails->disability_no,
-                'created_at'                 => $oldDetails->date_created,
-                'updated_at'                 => $oldDetails->date_modified ?? date('Y-m-d H:i:s'),
-            ];
+                // Update users table
+                $db->table('users')
+                    ->where('id', $user->id)
+                    ->update([
+                        'first_name' => $oldDetails->fname,
+                        'last_name'  => $oldDetails->sname,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
 
-            $exists = $db->table('user_details')
-                ->where('user_id', $user->id)
-                ->get()
-                ->getRow();
+                // Clean problematic values
+                $dob = ($oldDetails->dob && $oldDetails->dob !== '0000-00-00')
+                    ? $oldDetails->dob
+                    : null;
 
-            if ($exists) {
-                $db->table('user_details')
+                $detailsData = [
+                    'user_id'                    => $user->id,
+                    'national_id'                => $oldDetails->idno,
+                    'gender_id'                  => $oldDetails->gender,
+                    'dob'                        => $dob,
+                    'phone'                      => $oldDetails->phoneno,
+                    'ethnicity_id'               => null,
+                    'county_of_origin_id'        => $oldDetails->county_birth,
+                    'county_of_residence_id'     => $oldDetails->county_residence,
+                    'country_of_birth_id'        => $oldDetails->country_birth,
+                    'country_of_residence_id'    => $oldDetails->country_residence,
+                    'marital_status_id'          => $oldDetails->marital_status,
+                    'field_of_study_id'          => $oldDetails->field_of_study_id,
+                    'highest_level_of_study_id'  => $oldDetails->education_level_id,
+                    'disability_status'          => $oldDetails->disability,
+                    'disability_number'          => $oldDetails->disability_no,
+                    'created_at'                 => $oldDetails->date_created,
+                    'updated_at'                 => $oldDetails->date_modified ?? date('Y-m-d H:i:s'),
+                ];
+
+                $exists = $db->table('user_details')
                     ->where('user_id', $user->id)
-                    ->update($detailsData);
-            } else {
-                $detailsData['uuid'] = Uuid::uuid4()->toString();
-                $db->table('user_details')->insert($detailsData);
+                    ->get()
+                    ->getRow();
+
+                if ($exists) {
+                    $db->table('user_details')
+                        ->where('user_id', $user->id)
+                        ->update($detailsData);
+                } else {
+                    $detailsData['uuid'] = Uuid::uuid4()->toString();
+                    $db->table('user_details')->insert($detailsData);
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    $error = $db->error();
+
+                    throw new \Exception(
+                        "DB Error {$error['code']}: {$error['message']}"
+                    );
+                }
+
+                CLI::write(
+                    "Processed old_user_id: {$user->old_user_id} → new user_id: {$user->id}",
+                    'green'
+                );
+
+            } catch (\Throwable $e) {
+
+                CLI::write(
+                    "Failed old_user_id: {$user->old_user_id} | {$e->getMessage()}",
+                    'red'
+                );
+
+                // Optional: log to file
+                log_message(
+                    'error',
+                    "Migration failed for old_user_id {$user->old_user_id}: " . $e->getMessage()
+                );
             }
 
-            $db->transComplete();
-
-            if ($db->transStatus() === false) {
-                CLI::write("Transaction failed for old_user_id: {$user->old_user_id}", 'red');
-                // Decide: break entirely, or skip and continue?
-                break;
-            }
-
+            // ALWAYS move forward (critical fix)
             $lastProcessedId = $user->old_user_id;
-            CLI::write("Processed old_user_id: {$user->old_user_id} → new user_id: {$user->id}", 'green');
         }
 
         $this->saveLastProcessedId($db, $lastProcessedId);
+
         CLI::write("Batch complete. Last processed old_user_id: {$lastProcessedId}", 'cyan');
     }
 
