@@ -49,9 +49,6 @@ class MigrateUserDetails extends BaseCommand
                     continue;
                 }
 
-                // Remove transaction temporarily to get real error
-                // $db->transStart();
-
                 // Update users table
                 $db->table('users')
                     ->where('id', $user->id)
@@ -61,6 +58,7 @@ class MigrateUserDetails extends BaseCommand
                         'updated_at' => date('Y-m-d H:i:s'),
                     ]);
 
+                // Check for immediate DB errors
                 $err = $db->error();
                 if ($err['code'] !== 0) {
                     throw new \Exception("Users update failed: " . json_encode($err));
@@ -70,6 +68,22 @@ class MigrateUserDetails extends BaseCommand
                 $dob = ($oldDetails->dob && $oldDetails->dob !== '0000-00-00')
                     ? $oldDetails->dob
                     : null;
+
+                // Map old education IDs to new system (update as needed)
+                $educationMap = [
+                    1  => 4,  // College Certificate
+                    2  => 5,  // Diploma
+                    3  => 2,  // Undergraduate
+                    4  => 3,  // Masters
+                    6  => 5,  // PhD
+                    9  => 6,  // Secondary School Certificate
+                    10 => 7,  // Craft Certificate
+                    14 => 9,  // CPE(Class 7)
+                    15 => 8,  // KCPE(Form 4)
+                    16 => null // KACE(Form 6), confirm ID
+                ];
+
+                $highestLevelId = $educationMap[$oldDetails->education_level_id] ?? null;
 
                 $detailsData = [
                     'user_id'                    => $user->id,
@@ -84,7 +98,7 @@ class MigrateUserDetails extends BaseCommand
                     'country_of_residence_id'    => $oldDetails->country_residence,
                     'marital_status_id'          => $oldDetails->marital_status,
                     'field_of_study_id'          => $oldDetails->field_of_study_id,
-                    'highest_level_of_study_id'  => $oldDetails->education_level_id,
+                    'highest_level_of_study_id'  => $highestLevelId,
                     'disability_status'          => $oldDetails->disability,
                     'disability_number'          => $oldDetails->disability_no,
                     'created_at'                 => $oldDetails->date_created,
@@ -105,7 +119,7 @@ class MigrateUserDetails extends BaseCommand
                     $db->table('user_details')->insert($detailsData);
                 }
 
-                // Immediately check for DB errors
+                // Check for DB errors after insert/update
                 $err = $db->error();
                 if ($err['code'] !== 0) {
                     throw new \Exception("User_details insert/update failed: " . json_encode($err) .
@@ -130,6 +144,7 @@ class MigrateUserDetails extends BaseCommand
                 );
             }
 
+            // Move forward for next batch
             $lastProcessedId = $user->old_user_id;
         }
 
