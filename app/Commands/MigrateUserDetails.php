@@ -49,7 +49,8 @@ class MigrateUserDetails extends BaseCommand
                     continue;
                 }
 
-                $db->transStart();
+                // Remove transaction temporarily to get real error
+                // $db->transStart();
 
                 // Update users table
                 $db->table('users')
@@ -59,6 +60,11 @@ class MigrateUserDetails extends BaseCommand
                         'last_name'  => $oldDetails->sname,
                         'updated_at' => date('Y-m-d H:i:s'),
                     ]);
+
+                $err = $db->error();
+                if ($err['code'] !== 0) {
+                    throw new \Exception("Users update failed: " . json_encode($err));
+                }
 
                 // Clean problematic values
                 $dob = ($oldDetails->dob && $oldDetails->dob !== '0000-00-00')
@@ -99,14 +105,11 @@ class MigrateUserDetails extends BaseCommand
                     $db->table('user_details')->insert($detailsData);
                 }
 
-                $db->transComplete();
-
-                if ($db->transStatus() === false) {
-                    $error = $db->error();
-
-                    throw new \Exception(
-                        "DB Error {$error['code']}: {$error['message']}"
-                    );
+                // Immediately check for DB errors
+                $err = $db->error();
+                if ($err['code'] !== 0) {
+                    throw new \Exception("User_details insert/update failed: " . json_encode($err) .
+                        "\nData: " . json_encode($detailsData));
                 }
 
                 CLI::write(
@@ -121,14 +124,12 @@ class MigrateUserDetails extends BaseCommand
                     'red'
                 );
 
-                // Optional: log to file
                 log_message(
                     'error',
                     "Migration failed for old_user_id {$user->old_user_id}: " . $e->getMessage()
                 );
             }
 
-            // ALWAYS move forward (critical fix)
             $lastProcessedId = $user->old_user_id;
         }
 
