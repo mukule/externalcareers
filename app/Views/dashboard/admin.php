@@ -129,7 +129,7 @@
                                         <tr>
                                             <td><?= esc(($applicantsPage - 1) * $applicantsPerPage + $index + 1) ?></td>
                                             <td>
-                                                <a href="<?= base_url('admin/users/' . esc($applicant['uuid'])) ?>" class="text-decoration-none">
+                                                <a href="<?= base_url('admin/profile-review/' . esc($applicant['uuid'])) ?>" class="text-decoration-none">
                                                     <?= esc(trim($applicant['first_name'] . ' ' . $applicant['last_name'])) ?>
                                                 </a>
                                             </td>

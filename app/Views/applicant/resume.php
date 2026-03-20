@@ -54,46 +54,31 @@
         </div>
 
         <!-- Bio Data -->
-          
-        <!-- Bio Data -->
-<?php if (!empty($details)): ?>
-<div class="section">
-    <h2 class="section-title">Bio Data</h2>
-    <div class="section-content">
-        <div class="row g-2">
-
-            <!-- Basic Info -->
-            <div class="col-md-6"><strong>Full Name:</strong> <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?></div>
-            <div class="col-md-6"><strong>Email:</strong> <?= esc($user['email'] ?? '') ?></div>
-
-            <!-- Personal Info -->
-            <div class="col-md-6"><strong>National ID:</strong> <?= esc($details['national_id'] ?? '') ?></div>
-            <div class="col-md-6"><strong>Gender:</strong> <?= esc($details['gender_name'] ?? '') ?></div>
-            <div class="col-md-6"><strong>Date of Birth:</strong> <?= esc($details['dob'] ?? '') ?></div>
-            <div class="col-md-6"><strong>Phone:</strong> <?= esc($details['phone'] ?? '') ?></div>
-            <div class="col-md-6"><strong>Ethnicity:</strong> <?= esc($details['ethnicity_name'] ?? '') ?></div>
-
-            <!-- Marital Status -->
-            <div class="col-md-6"><strong>Marital Status:</strong> <?= esc($details['marital_status_name'] ?? 'N/A') ?></div>
-
-            <!-- Location Info -->
-            <div class="col-md-6"><strong>Country of Birth:</strong> <?= esc($details['country_of_birth_name'] ?? '') ?></div>
-            <div class="col-md-6"><strong>Country of Residence:</strong> <?= esc($details['country_of_residence_name'] ?? '') ?></div>
-
-            <!-- Counties -->
-            <div class="col-md-6"><strong>County of Origin:</strong> <?= esc($details['county_of_origin_name'] ?? '') ?></div>
-            <div class="col-md-6"><strong>County of Residence:</strong> <?= esc($details['county_of_residence_name'] ?? '') ?></div>
-
-            <!-- Disability -->
-            <div class="col-md-6"><strong>Disability:</strong> <?= ($details['disability_status'] ?? 0) == 1 ? 'Yes' : 'No' ?></div>
-            <?php if (($details['disability_status'] ?? 0) == 1): ?>
-                <div class="col-md-6"><strong>Disability Number:</strong> <?= esc($details['disability_number'] ?? '') ?></div>
-            <?php endif; ?>
-
+        <?php if (!empty($details)): ?>
+        <div class="section">
+            <h2 class="section-title">Bio Data</h2>
+            <div class="section-content">
+                <div class="row g-2">
+                    <div class="col-md-6"><strong>Full Name:</strong> <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?></div>
+                    <div class="col-md-6"><strong>Email:</strong> <?= esc($user['email'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>National ID:</strong> <?= esc($details['national_id'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Gender:</strong> <?= esc($details['gender_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Date of Birth:</strong> <?= esc($details['dob'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Phone:</strong> <?= esc($details['phone'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Ethnicity:</strong> <?= esc($details['ethnicity_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Marital Status:</strong> <?= esc($details['marital_status_name'] ?? 'N/A') ?></div>
+                    <div class="col-md-6"><strong>Country of Birth:</strong> <?= esc($details['country_of_birth_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Country of Residence:</strong> <?= esc($details['country_of_residence_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>County of Origin:</strong> <?= esc($details['county_of_origin_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>County of Residence:</strong> <?= esc($details['county_of_residence_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Disability:</strong> <?= ($details['disability_status'] ?? 0) == 1 ? 'Yes' : 'No' ?></div>
+                    <?php if (($details['disability_status'] ?? 0) == 1): ?>
+                        <div class="col-md-6"><strong>Disability Number:</strong> <?= esc($details['disability_number'] ?? '') ?></div>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-<?php endif; ?>
+        <?php endif; ?>
 
         <!-- Academic Summary -->
         <?php if (!empty($details['highest_edu_level']) || !empty($details['study_field'])): ?>
@@ -102,12 +87,10 @@
             <div class="section-content">
                 <div class="row g-2">
                     <div class="col-md-6">
-                        <strong>Highest Education Level:</strong> 
-                        <?= esc($details['highest_edu_level'] ?? 'N/A') ?>
+                        <strong>Highest Education Level:</strong> <?= esc($details['highest_edu_level'] ?? 'N/A') ?>
                     </div>
                     <div class="col-md-6">
-                        <strong>Specialization:</strong> 
-                        <?= esc($details['study_field'] ?? 'N/A') ?>
+                        <strong>Specialization:</strong> <?= esc($details['study_field'] ?? 'N/A') ?>
                     </div>
                 </div>
             </div>
@@ -170,9 +153,8 @@
                     <thead class="table-light">
                         <tr>
                             <th>Institution</th>
-                            <th>Level</th>
+                            <th>Certification</th>
                             <th>Course</th>
-                            <th>Specialization</th>
                             <th>Years</th>
                             <th>Certificate</th>
                         </tr>
@@ -183,7 +165,6 @@
                             <td><?= esc($edu['institution_name']) ?></td>
                             <td><?= esc($edu['level_name']) ?></td>
                             <td><?= esc($edu['course_name']) ?></td>
-                            <td><?= esc($edu['specialization'] ?? 'N/A') ?></td>
                             <td><?= esc($edu['date_started']) ?> - <?= esc($edu['date_ended']) ?></td>
                             <td>
                                 <?php if (!empty($edu['certificate'])): ?>
@@ -223,6 +204,41 @@
                             <td>
                                 <?php if (!empty($cert['certificate_url'])): ?>
                                 <a href="<?= esc($cert['certificate_url']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
+                                <?php else: ?><em>N/A</em><?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Professional Memberships -->
+        <?php if (!empty($memberships)): ?>
+        <div class="section">
+            <h2 class="section-title">Professional Memberships</h2>
+            <div class="section-content table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Membership Name</th>
+                            <th>Certifying Body</th>
+                            <th>Membership No</th>
+                            <th>Attained Date</th>
+                            <th>Certificate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($memberships as $mem): ?>
+                        <tr>
+                            <td><?= esc($mem['name'] ?? '-') ?></td>
+                            <td><?= esc($mem['body_name'] ?? '-') ?></td>
+                            <td><?= esc($mem['membership_no'] ?? '-') ?></td>
+                            <td><?= esc($mem['joined_date'] ?? '-') ?></td>
+                            <td>
+                                <?php if (!empty($mem['certificate'])): ?>
+                                    <a href="<?= base_url('uploads/memberships/' . $mem['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
                                 <?php else: ?><em>N/A</em><?php endif; ?>
                             </td>
                         </tr>
@@ -327,10 +343,6 @@
             </div>
         </div>
         <?php endif; ?>
-
-        <div class="resume-footer text-center mt-4 text-muted">
-            <p>Generated from Kengen Recruitment Portal</p>
-        </div>
 
     </div>
 </div>

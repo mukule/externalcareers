@@ -305,7 +305,7 @@ public function userDetail(string $uuid)
 
     return view('admin/registrant_details', [
         'title' => 'User Details - ' . trim($user['first_name'] . ' ' . $user['last_name']),
-        'user'  => $userFull
+        'applicant'  => $userFull
     ]);
 }
 

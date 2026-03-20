@@ -146,7 +146,7 @@ $routes->group('counties', function($routes) {
    $routes->get('staffs/toggle-active/(:num)', 'Admin\StaffController::toggleActive/$1');
 
 
-
+$routes->get('profile-review/(:segment)', 'ProfileController::resume/$1', ['as' => 'applicant.profile-review.user']);
 
 });
 
@@ -226,6 +226,6 @@ $routes->group('applicant', ['filter' => 'role:applicant'], function ($routes) {
 
  
     $routes->get('profile-review', 'ProfileController::resume', ['as' => 'applicant.profile-review']);
-    $routes->get('profile-review/(:segment)', 'ProfileController::resume/$1', ['as' => 'applicant.profile-review.user']);
+    
 
 });

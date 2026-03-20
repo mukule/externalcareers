@@ -179,7 +179,7 @@ class ProfileController extends BaseController
 
 
 
-    public function resume(?string $userUuid = null)
+public function resume(?string $userUuid = null)
 {
     helper(['job_eligibility', 'url', 'filesystem']); 
 
@@ -244,7 +244,7 @@ class ProfileController extends BaseController
         ->join('county coo', 'coo.id = user_details.county_of_origin_id', 'left')
         ->join('county cor', 'cor.id = user_details.county_of_residence_id', 'left')
 
-        // ✅ Marital Status FIX: use marital_status_id
+        // Marital Status
         ->join('marital_status ms', 'ms.id = user_details.marital_status_id', 'left')
 
         ->where('user_details.user_id', $userId)
@@ -314,9 +314,13 @@ class ProfileController extends BaseController
             : null;
     }
 
-    // 8. Memberships
+    // 8. Memberships (JOIN to certifying_bodies)
     $memberships = $this->membershipModel
-        ->where('user_id', $userId)
+        ->select('user_memberships.*, certifying_bodies.name AS body_name')
+        ->join('certifying_bodies', 'certifying_bodies.id = user_memberships.certifying_body_id', 'left')
+        ->where('user_memberships.user_id', $userId)
+        ->where('user_memberships.active', 1)
+        ->orderBy('user_memberships.joined_date', 'DESC')
         ->findAll() ?? [];
 
     foreach ($memberships as &$mem) {
@@ -341,7 +345,7 @@ class ProfileController extends BaseController
     // 12. Final Data
     $data = [
         'title'           => $pageTitle,
-        'user'            => $user,
+        'resume'          => $user,
         'details'         => $details,
         'isAdminView'     => $isAdminView,
         'currentStep'     => 9,
@@ -363,4 +367,6 @@ class ProfileController extends BaseController
 
     return view($viewPath, $data);
 }
+
+
 }

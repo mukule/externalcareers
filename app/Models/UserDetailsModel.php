@@ -10,39 +10,16 @@ class UserDetailsModel extends Model
     protected $table      = 'user_details';
     protected $primaryKey = 'id';
 
-    protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
+    protected $returnType = 'array';
 
     protected $allowedFields = [
-        'uuid',
-        'user_id',
-        'national_id',
-        'gender_id',
-        'dob',
-        'phone',
-        'ethnicity_id',
-        'disability_status',
-        'disability_number',
-        'disability_type',
-
-        // ✅ Counties
-        'county_of_origin_id',
-        'county_of_residence_id',
-
-        // ✅ Countries (IDs only)
-        'country_of_birth_id',
-        'country_of_residence_id',
-
-        // ✅ NEW: marital status FK
-        'marital_status_id',
-
-        'nationality',
-        'field_of_study_id',
-        'highest_level_of_study_id',
-
-        'completed',
-        'active',
+        'uuid','user_id','national_id','gender_id','dob','phone',
+        'ethnicity_id','disability_status','disability_number','disability_type',
+        'county_of_origin_id','county_of_residence_id',
+        'country_of_birth_id','country_of_residence_id',
+        'marital_status_id','nationality',
+        'field_of_study_id','highest_level_of_study_id',
+        'completed','active'
     ];
 
     protected $useTimestamps = true;
@@ -53,135 +30,102 @@ class UserDetailsModel extends Model
 
     protected function generateUUID(array $data)
     {
-        if (!isset($data['data']['uuid'])) {
+        if (empty($data['data']['uuid'])) {
             $data['data']['uuid'] = Uuid::uuid4()->toString();
         }
         return $data;
     }
 
+    /**
+     * ⚡ FAST: Check completion using EXISTS (no row fetch)
+     */
     public function isComplete(int $userId): bool
     {
-        $details = $this->where('user_id', $userId)
-                        ->select('completed')
-                        ->first();
-
-        return !empty($details) && $details['completed'] == 1;
+        return $this->where('user_id', $userId)
+                    ->where('completed', 1)
+                    ->countAllResults() > 0;
     }
 
+    /**
+     * ⚡ FAST: Get user details only (no joins)
+     */
     public function getByUserId(int $userId): ?array
     {
-        return $this->where('user_id', $userId)->first();
+        return $this->select('id,user_id,completed,active')
+                    ->where('user_id', $userId)
+                    ->first();
     }
 
-    public function getFullUserByUserId(int $userId): ?array
+    /**
+     * 🚀 KEYSET PAGINATION (NO OFFSET)
+     * Use lastId instead of page number
+     */
+    public function getUsersFast(int $limit = 20, ?int $lastId = null): array
     {
-        return $this->db->table($this->table)
-            ->select('users.id AS user_id, users.uuid AS user_uuid, users.first_name, users.last_name, users.email, users.active AS user_active, users.role, users.last_login, user_details.*')
-            ->join('users', 'users.id = user_details.user_id', 'left')
-            ->where('user_details.user_id', $userId)
-            ->get()
-            ->getRowArray();
-    }
+        $builder = $this->db->table('users u')
+            ->select('
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.created_at,
+                ud.completed
+            ')
+            ->join('user_details ud', 'ud.user_id = u.id', 'left')
+            ->orderBy('u.id', 'DESC')
+            ->limit($limit);
 
-    public function getAllUsersWithDetails(int $perPage = 0, int $page = 1): array
-    {
-        $builder = $this->db->table($this->table)
-            ->select('users.id AS user_id, users.uuid AS user_uuid, users.first_name, users.last_name, users.email, users.active AS user_active, users.role, users.last_login, user_details.*')
-            ->join('users', 'users.id = user_details.user_id', 'left')
-            ->orderBy('users.created_at', 'DESC');
-
-        $total = $builder->countAllResults(false);
-
-        if ($perPage > 0) {
-            $offset = ($page - 1) * $perPage;
-            $builder->limit($perPage, $offset);
+        if ($lastId) {
+            $builder->where('u.id <', $lastId); // keyset pagination
         }
 
+        $data = $builder->get()->getResultArray();
+
         return [
-            'data'    => $builder->get()->getResultArray(),
-            'total'   => $total,
-            'perPage' => $perPage,
-            'page'    => $page,
+            'data' => $data,
+            'next_last_id' => !empty($data) ? end($data)['id'] : null
         ];
     }
 
     /**
-     * ✅ UPDATED Resume Details (NOW FULLY NORMALIZED)
+     * ⚡ LIGHTWEIGHT LIST (no joins at all)
+     * Use this for admin tables when joins are not needed
+     */
+    public function getUsersLight(int $limit = 20, int $offset = 0): array
+    {
+        return $this->db->table('users')
+            ->select('id, first_name, last_name, email, created_at')
+            ->orderBy('id', 'DESC')
+            ->limit($limit, $offset)
+            ->get()
+            ->getResultArray();
+    }
+
+    /**
+     * ⚡ OPTIMIZED RESUME (minimal joins)
      */
     public function getResumeDetails(int $userId): array
     {
-        $result = $this->select('
-                user_details.*,
+        $row = $this->db->table('user_details ud')
+            ->select('
+                ud.national_id,
+                ud.dob,
+                ud.phone,
+                ud.disability_status,
+                ud.disability_number,
 
-                genders.title AS gender_name,
-                ethnicities.name AS ethnicity_name,
-
-                edu_levels.name AS highest_edu_level,
-                edu_levels.index AS edu_index,
-                fields.name AS study_field,
-
-                cbirth.title AS country_of_birth_name,
-                cres.title AS country_of_residence_name,
-
-                coo.title AS county_of_origin_name,
-                cor.title AS county_of_residence_name,
-
-                ms.title AS marital_status_name
+                g.title AS gender,
+                ms.title AS marital_status,
+                el.name AS education_level
             ')
-            ->join('gender genders', 'genders.id = user_details.gender_id', 'left')
-            ->join('ethnicities', 'ethnicities.id = user_details.ethnicity_id', 'left')
-            ->join('education_levels edu_levels', 'edu_levels.id = user_details.highest_level_of_study_id', 'left')
-            ->join('fields_of_study fields', 'fields.id = user_details.field_of_study_id', 'left')
+            ->join('gender g', 'g.id = ud.gender_id', 'left')
+            ->join('marital_status ms', 'ms.id = ud.marital_status_id', 'left')
+            ->join('education_levels el', 'el.id = ud.highest_level_of_study_id', 'left')
+            ->where('ud.user_id', $userId)
+            ->where('ud.active', 1)
+            ->get()
+            ->getRowArray();
 
-            // Countries
-            ->join('country cbirth', 'cbirth.id = user_details.country_of_birth_id', 'left')
-            ->join('country cres', 'cres.id = user_details.country_of_residence_id', 'left')
-
-            // Counties
-            ->join('county coo', 'coo.id = user_details.county_of_origin_id', 'left')
-            ->join('county cor', 'cor.id = user_details.county_of_residence_id', 'left')
-
-            // Marital Status
-            ->join('marital_status ms', 'ms.id = user_details.marital_status_id', 'left')
-
-            ->where('user_details.user_id', $userId)
-            ->where('user_details.active', 1)
-            ->first();
-
-        if (!$result) {
-            return [];
-        }
-
-        return [
-            'national_id'               => $result['national_id'] ?? '',
-            'gender_name'               => $result['gender_name'] ?? '',
-            'dob'                       => $result['dob'] ?? '',
-            'phone'                     => $result['phone'] ?? '',
-            'ethnicity_name'            => $result['ethnicity_name'] ?? '',
-
-            'country_of_birth_name'     => $result['country_of_birth_name'] ?? '',
-            'country_of_residence_name' => $result['country_of_residence_name'] ?? '',
-
-            'county_of_origin_name'     => $result['county_of_origin_name'] ?? '',
-            'county_of_residence_name'  => $result['county_of_residence_name'] ?? '',
-
-            'marital_status_name'       => $result['marital_status_name'] ?? '',
-
-            'disability_status'         => $result['disability_status'] ?? 0,
-            'disability_number'         => $result['disability_number'] ?? '',
-
-            'highest_edu_level'         => $result['highest_edu_level'] ?? '',
-            'edu_index'                 => $result['edu_index'] ?? 0,
-            'study_field'               => $result['study_field'] ?? '',
-        ];
-    }
-
-    public function getAllCountries(): array
-    {
-        return $this->db->table('country')
-                        ->where('active', 1)
-                        ->orderBy('title', 'ASC')
-                        ->get()
-                        ->getResultArray();
+        return $row ?? [];
     }
 }
