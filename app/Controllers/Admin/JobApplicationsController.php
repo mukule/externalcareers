@@ -20,48 +20,48 @@ class JobApplicationsController extends BaseController
    
 
     public function index()
-{
-    // Get filter values from GET parameters
-    $filters = [
-        'name' => $this->request->getGet('name'),
-        'ref_no' => $this->request->getGet('ref_no'),
-        'job_type_id' => $this->request->getGet('job_type_id'),
-        'discipline_id' => $this->request->getGet('discipline_id')
-    ];
+    {
+        $filters = [
+            'name' => $this->request->getGet('name'),
+            'ref_no' => $this->request->getGet('ref_no'),
+            'job_type_id' => $this->request->getGet('job_type_id'),
+            'discipline_id' => $this->request->getGet('discipline_id')
+        ];
 
-    // Remove empty filters
-    $filters = array_filter($filters, fn($value) => $value !== null && $value !== '');
+        
+        $filters = array_filter($filters, fn($value) => $value !== null && $value !== '');
 
-    // Pagination parameters
-    $perPage = 20;
-    $currentPage = (int) $this->request->getGet('page') ?: 1;
-    $offset = ($currentPage - 1) * $perPage;
+       
+        $perPage = 20;
+        $currentPage = (int) $this->request->getGet('page') ?: 1;
+        $offset = ($currentPage - 1) * $perPage;
 
-    // Fetch filtered jobs with application counts
-    $jobsData = $this->jobApplicationModel->getJobsWithApplicationCountsOnly($filters, $perPage, $offset);
+        
+        $jobsData = $this->jobApplicationModel->getJobsWithApplicationCountsOnly($filters, $perPage, $offset);
 
-    // Get total count for pagination
-    $totalJobs = $this->jobApplicationModel->countJobsWithFilters($filters);
-    $totalPages = ceil($totalJobs / $perPage);
+       
+        $totalJobs = $this->jobApplicationModel->countJobsWithFilters($filters);
+        $totalPages = ceil($totalJobs / $perPage);
 
-    // Fetch job types and disciplines for filter dropdowns
-    $jobTypes = model(\App\Models\JobTypeModel::class)->findAll();
-    $disciplines = model(\App\Models\JobDisciplineModel::class)->findAll();
+        
+        $jobTypes = model(\App\Models\JobTypeModel::class)->findAll();
+        $disciplines = model(\App\Models\JobDisciplineModel::class)->findAll();
 
-    return view('admin/jobs_applications', [
-        'title'        => 'Job Applications',
-        'jobs'         => $jobsData,
-        'filters'      => $filters,
-        'currentPage'  => $currentPage,
-        'perPage'      => $perPage,
-        'totalPages'   => $totalPages,
-        'jobTypes'     => $jobTypes,
-        'disciplines'  => $disciplines
-    ]);
-}
+        return view('admin/jobs_applications', [
+            'title'        => 'Job Applications',
+            'jobs'         => $jobsData,
+            'filters'      => $filters,
+            'currentPage'  => $currentPage,
+            'perPage'      => $perPage,
+            'totalPages'   => $totalPages,
+            'jobTypes'     => $jobTypes,
+            'disciplines'  => $disciplines
+        ]);
+    }
 
 
-public function show($uuid)
+    
+    public function show($uuid)
 {
     $job = $this->jobModel->where('uuid', $uuid)->first();
 
@@ -69,8 +69,12 @@ public function show($uuid)
         return redirect()->back()->with('error', 'Job not found.');
     }
 
+    // ✅ Load Gender Model
+    $genderModel = new \App\Models\GenderModel();
+
     // Get filters from GET query parameters
     $filters = [
+        'job_id'        => $job['id'],
         'user_name'     => $this->request->getGet('user_name'),
         'email'         => $this->request->getGet('email'),
         'job_ref'       => $this->request->getGet('job_ref'),
@@ -80,15 +84,11 @@ public function show($uuid)
         'status'        => $this->request->getGet('status'),
     ];
 
-    // Fetch applications with filters applied
-    $applications = $this->jobApplicationModel->getApplicationsByJobWithUsers($filters);
+    // Fetch applications
+    $applications = $this->jobApplicationModel
+        ->getApplicationsByJobWithUsers($filters);
 
-    // Ensure applications are only for this job
-    $applications = array_filter($applications, function($app) use ($job) {
-        return $app['job_id'] == $job['id'];
-    });
-
-    // Check if export to CSV is requested
+    // Export if requested
     if ($this->request->getGet('export') === 'csv') {
         return $this->exportApplicationsToCSV($job['name'], $applications);
     }
@@ -97,10 +97,10 @@ public function show($uuid)
         'title'        => $job['name'] . ' - Applications',
         'job'          => $job,
         'applications' => $applications,
-        'filters'      => $filters
+        'filters'      => $filters,
+        'genders'      => $genderModel->getActive(), // ✅ PASS THIS
     ]);
 }
-
 
 
 

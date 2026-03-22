@@ -131,7 +131,8 @@ class JobApplicationModel extends Model
                     ->findAll();
     }
 
- public function getApplicationsByJobWithUsers(array $filters = []): array
+
+    public function getApplicationsByJobWithUsers(array $filters = []): array
 {
     $builder = $this->db->table('job_applications ja')
         ->select('
@@ -144,26 +145,35 @@ class JobApplicationModel extends Model
             j.reference_no, 
             j.name AS job_name,
             ud.national_id,
-            ud.gender
+            ud.gender_id,
+            g.title AS gender_name
         ')
         ->join('users u', 'u.id = ja.user_id', 'left')
-        ->join('user_details ud', 'ud.user_id = u.id', 'left') // join user details
+        ->join('user_details ud', 'ud.user_id = u.id', 'left')
+        ->join('gender g', 'g.id = ud.gender_id', 'left') // ✅ FIXED
         ->join('jobs j', 'j.id = ja.job_id', 'left')
         ->orderBy('ja.created_at', 'DESC');
 
-    // Apply filters
+    // ✅ Filter by job_id (critical)
+    if (!empty($filters['job_id'])) {
+        $builder->where('ja.job_id', $filters['job_id']);
+    }
+
+    // Filters
     if (!empty($filters['user_name'])) {
-        $builder->like('CONCAT(u.first_name, " ", u.last_name)', $filters['user_name']);
+        $builder->groupStart()
+            ->like('u.first_name', $filters['user_name'])
+            ->orLike('u.last_name', $filters['user_name'])
+            ->groupEnd();
     }
 
     if (!empty($filters['email'])) {
         $builder->like('u.email', $filters['email']);
     }
 
-   if (!empty($filters['job_ref'])) {
+    if (!empty($filters['job_ref'])) {
         $builder->like('ja.ref_no', $filters['job_ref']);
     }
-
 
     if (!empty($filters['qualification'])) {
         $builder->where('ja.qualification', $filters['qualification']);
@@ -173,11 +183,12 @@ class JobApplicationModel extends Model
         $builder->like('ud.national_id', $filters['national_id']);
     }
 
+    // ✅ FIXED: use gender_id instead of gender
     if (!empty($filters['gender'])) {
-        $builder->where('ud.gender', $filters['gender']);
+        $builder->where('ud.gender_id', $filters['gender']);
     }
 
-      if (!empty($filters['status'])) {
+    if (!empty($filters['status'])) {
         $builder->where('ja.status', strtolower($filters['status']));
     }
 
