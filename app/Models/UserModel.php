@@ -234,4 +234,31 @@ public function findByEmailAndNationalId(string $email, string $nationalId): ?ar
 
 
 
+    public function getUserById(int $userId, bool $withDetails = false): ?array
+{
+    $builder = $this->db->table($this->table)
+        ->select('users.*');
+
+    if ($withDetails) {
+        $builder->select('user_details.*')
+                ->join('user_details', 'user_details.user_id = users.id', 'left');
+    }
+
+    $user = $builder->where('users.id', $userId)
+                    ->get()
+                    ->getRowArray();
+
+    return $user ?: null;
+}
+
+
+public function findByEmail(string $email): ?array
+{
+    return $this->where('email', $email)
+                ->where('role', 'applicant')
+                ->first();
+}
+
+
+
 }

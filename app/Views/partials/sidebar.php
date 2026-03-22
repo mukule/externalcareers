@@ -29,6 +29,18 @@
                         </nav>
                     </div>
 
+                    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseEducation" aria-expanded="false" aria-controls="collapseEducation">
+                        <div class="sb-nav-link-icon"><i class="fas fa-graduation-cap"></i></div>
+                        Education
+                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                    </a>
+                    <div class="collapse" id="collapseEducation" data-bs-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <a class="nav-link <?= (uri_string() === 'admin/education-levels' ? 'active' : '') ?>" href="<?= base_url('admin/education-levels') ?>">Education Levels</a>
+                            <a class="nav-link <?= (uri_string() === 'admin/fields-of-study' ? 'active' : '') ?>" href="<?= base_url('admin/fields-of-study') ?>">Fields of Study</a>
+                        </nav>
+                    </div>
+
                     <!-- Certifications Section (Collapsible) -->
                     <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseCertifications" aria-expanded="false" aria-controls="collapseCertifications">
                         <div class="sb-nav-link-icon"><i class="fas fa-certificate"></i></div>
@@ -43,35 +55,40 @@
                     </div>
 
                     <!-- Other Job Portal Links -->
-                    <a class="nav-link <?= (uri_string() === 'admin/fields-of-study' ? 'active' : '') ?>" href="<?= base_url('admin/fields-of-study') ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>
-                        Fields of Study
-                    </a>
+                   
 
-                    <a class="nav-link <?= (uri_string() === 'admin/ethnicities' ? 'active' : '') ?>" href="<?= base_url('admin/ethnicities') ?>">
+                    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseDemographics" aria-expanded="false" aria-controls="collapseDemographics">
                         <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
-                        Ethnicities
+                        Demographics
+                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
                     </a>
+                    <div class="collapse" id="collapseDemographics" data-bs-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <a class="nav-link <?= (uri_string() === 'admin/ethnicities' ? 'active' : '') ?>" href="<?= base_url('admin/ethnicities') ?>">Ethnicities</a>
+                            <a class="nav-link <?= (uri_string() === 'admin/counties' ? 'active' : '') ?>" href="<?= base_url('admin/counties') ?>">Counties</a>
+                        </nav>
+                    </div>
 
-                     <a class="nav-link <?= (uri_string() === 'admin/counties' ? 'active' : '') ?>" href="<?= base_url('admin/counties') ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-map-marker-alt"></i></div>
-                        Counties
-                    </a>
-
-                    <a class="nav-link <?= (uri_string() === 'admin/education-levels' ? 'active' : '') ?>" href="<?= base_url('admin/education-levels') ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-graduation-cap"></i></div>
-                        Education Levels
-                    </a>
+                  
                     
                      <a class="nav-link <?= (uri_string() === 'admin/staffs' ? 'active' : '') ?>" href="<?= base_url('admin/staffs') ?>">
                         <div class="sb-nav-link-icon"><i class="fas fa-user-shield"></i></div>
                         Staff Members   
                     </a>
 
-                     <a class="nav-link <?= (uri_string() === 'admin/applicants' ? 'active' : '') ?>" href="<?= base_url('admin/applicants') ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
-                        Registrants   
+                     <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseLogs" aria-expanded="false" aria-controls="collapseLogs">
+                        <div class="sb-nav-link-icon"><i class="fas fa-file-alt"></i></div>
+                        Logs
+                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
                     </a>
+                    <div class="collapse" id="collapseLogs" data-bs-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <a class="nav-link <?= (uri_string() === 'admin/admin-logs' ? 'active' : '') ?>" href="<?= base_url('admin/admin-logs') ?>">Admin Logs</a>
+                            <a class="nav-link <?= (uri_string() === 'admin/user-logs' ? 'active' : '') ?>" href="<?= base_url('admin/user-logs') ?>">User Logs</a>
+                        </nav>
+                    </div>
+
+                 
 
                 <?php else: ?>
                     <div class="text-center text-muted mt-4">

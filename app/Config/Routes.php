@@ -148,6 +148,10 @@ $routes->group('counties', function($routes) {
 
 $routes->get('profile-review/(:segment)', 'ProfileController::resume/$1', ['as' => 'applicant.profile-review.user']);
 
+$routes->get('get-user-by-email', 'Admin\StaffController::getUserByEmail');
+$routes->get('admin-logs', 'Admin\AdminLogs::index');
+$routes->get('user-logs', 'Admin\UserLogs::index');
+
 });
 
 
