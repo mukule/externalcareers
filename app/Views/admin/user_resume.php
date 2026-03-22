@@ -37,23 +37,28 @@
 
 <div class="container mt-3">
 
- <div class="row mb-3">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb bg-white rounded shadow-sm p-3 mb-0">
+
+<div class="card mb-3 shadow-sm">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <nav aria-label="breadcrumb" class="mb-0">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="<?= base_url('admin') ?>">Dashboard</a></li>
                     <li class="breadcrumb-item">
-                        <a href="<?= base_url('admin') ?>">Dashboard</a>
+                        <a href="<?= base_url('admin/jobs-applications') ?>">Applications</a>
                     </li>
-                    <li class="breadcrumb-item active">
-                        <?= esc(trim($resume['first_name'] . ' ' . $resume['last_name'])) ?> Resume
+                     <li class="breadcrumb-item active" aria-current="page">
+                        <?= esc($title ?? '') ?>
                     </li>
                 </ol>
             </nav>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="history.back();">
+        &larr; Back
+    </button>
         </div>
     </div>
 
    
-    <div class="resume-container">
+    <div class="resume-container mb-4">
 
         
         <!-- Bio Data -->

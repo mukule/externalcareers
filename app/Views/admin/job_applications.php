@@ -124,7 +124,7 @@
 
                                     <!-- ✅ CLEAN NAME -->
                                     <td>
-                                        <a href="<?= base_url('applicant/profile-review/' . $app['user_uuid']) ?>">
+                                        <a href="<?= base_url('admin/profile-review/' . $app['user_uuid']) ?>">
                                             <?= esc(trim(($app['first_name'] ?? '') . ' ' . ($app['last_name'] ?? ''))) ?: '-' ?>
                                         </a>
                                     </td>
