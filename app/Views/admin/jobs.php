@@ -91,13 +91,15 @@
                                     </td>
 
                                     <td><?= esc($job['job_type_name'] ?? 'N/A') ?></td>
-                                    <td><?= esc($job['date_open']) ?> - <?= esc($job['date_close']) ?></td>
+                                   <td>
+                                        <?= date('Y-m-d', strtotime($job['date_open'])) ?> | <?= date('Y-m-d', strtotime($job['date_close'])) ?>
+                                    </td>
 
                                     <td class="text-center">
                                         <?php 
                                             $status = $job['status'] ?? 'Unknown';
                                             $badgeClass = match($status) {
-                                                'Upcoming' => 'bg-info',
+                                                'Upcoming' => 'bg-primary',
                                                 'Open'     => 'bg-primary',
                                                 'Closed'   => 'bg-secondary',
                                                 default    => 'bg-secondary'
@@ -108,17 +110,17 @@
 
                                     <td class="text-center">
                                         <?php if (!empty($job['active']) && $job['active'] == 1): ?>
-                                            <a href="<?= base_url('admin/jobs/toggle/' . $job['uuid']) ?>"
+                                            <a href="<?= base_url('admin/jobs/toggle/' . $job['id']) ?>"
                                                class="btn btn-sm btn-outline-primary"
                                                title="Unpublish Job"
-                                               onclick="return confirm('Unpublish this job?');">
+                                               onclick="return confirm('Unpublish this job: <?= esc($job['name']) ?> (Ref: <?= esc($job['reference_no']) ?>)?');">
                                                 <i class="fas fa-eye-slash"></i>
                                             </a>
                                         <?php else: ?>
-                                            <a href="<?= base_url('admin/jobs/toggle/' . $job['uuid']) ?>"
+                                            <a href="<?= base_url('admin/jobs/toggle/' . $job['id']) ?>"
                                                class="btn btn-sm btn-outline-secondary"
                                                title="Publish Job"
-                                               onclick="return confirm('Publish this job?');">
+                                               onclick="return confirm('Publish this job: <?= esc($job['name']) ?> (Ref: <?= esc($job['reference_no']) ?>)?');">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                         <?php endif; ?>

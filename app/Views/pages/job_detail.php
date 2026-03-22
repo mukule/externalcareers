@@ -95,7 +95,7 @@
 
                     <!-- ================= APPLY / LOGIN BUTTON ================= -->
                     <?php if (!$isLoggedIn): ?>
-                        <a href="#" class="btn btn-outline-primary">
+                        <a href="<?= base_url('/login') ?>" class="btn btn-outline-primary">
                             Login to Apply
                         </a>
                     <?php else: ?>

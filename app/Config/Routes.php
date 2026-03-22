@@ -112,7 +112,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('jobs/edit/(:segment)', 'Admin\JobsController::edit/$1');
     $routes->post('jobs/update/(:segment)', 'Admin\JobsController::update/$1'); 
     $routes->get('jobs/delete/(:segment)', 'Admin\JobsController::delete/$1');
-    $routes->get('jobs/toggle/(:segment)', 'Admin\JobsController::toggle/$1');
+    $routes->get('jobs/toggle/(:num)', 'Admin\JobsController::toggle/$1');
     $routes->get('jobs/(:segment)', 'Admin\JobsController::show/$1');
 
 

@@ -145,8 +145,8 @@
                                 <strong>Minimum Education:</strong> <?= esc($job['minimum_education'] ?? 'N/A') ?>
                             </p>
 
-                                <p class="small text-muted mb-0">
-                                    Deadline: <?= esc($job['date_close']) ?>
+                               <p class="small text-muted mb-0">
+                                    Deadline: <?= date('Y-m-d H:i', strtotime($job['date_close'])) ?>
                                 </p>
                             </div>
 

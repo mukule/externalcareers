@@ -33,7 +33,6 @@ class AuthController extends BaseController
 }
 
 
-
 public function store()
 {
     // Ensure method is POST
@@ -63,8 +62,14 @@ public function store()
         ->where('active', 1)
         ->first();
 
-    // Verify user existence and password
+    // ❌ Failed login
     if (! $user || ! password_verify($password, $user['password'])) {
+
+        \App\Services\LogService::user(
+            null,
+            'Failed login: ' . $email
+        );
+
         return redirect()->back()
             ->withInput()
             ->with('error', 'Invalid email or password.');
@@ -80,11 +85,17 @@ public function store()
     }
 
     /**
-     * 🔹 NEW LOGIC: Check if password needs to be changed
-     * If password_changed is 0 (false), we redirect them immediately.
+     * 🔹 Password change required
      */
     if ((int)$user['password_changed'] === 0) {
-        // Set minimal session data so the change-password page knows who they are
+
+        // Log based on role
+        if ($user['role'] === 'admin') {
+            \App\Services\LogService::admin($user['id'], 'Login blocked - password change required');
+        } else {
+            \App\Services\LogService::user($user['id'], 'Login blocked - password change required');
+        }
+
         session()->set([
             'temp_user_id' => $user['id'],
             'temp_email'   => $user['email'],
@@ -95,7 +106,7 @@ public function store()
             ->with('info', 'Please change your password to proceed to your account.');
     }
 
-    // 🔹 Standard Login Flow (If password is already changed)
+    // ✅ Standard Login Flow
     session()->regenerate();
 
     session()->set([
@@ -107,6 +118,13 @@ public function store()
         'access_level' => $user['access_level'],
         'logged_in'    => true
     ]);
+
+    // ✅ Log successful login based on role
+    if ($user['role'] === 'admin') {
+        \App\Services\LogService::admin($user['id'], 'logged in');
+    } else {
+        \App\Services\LogService::user($user['id'], 'logged in');
+    }
 
     // Handle intended redirect
     $redirectTo = session()->get('intended_url');
@@ -121,13 +139,25 @@ public function store()
 }
 
 
-    
-    public function logout()
-    {
-        session()->destroy();
-        return redirect()->to('/');
+public function logout()
+{
+    // Get user info from session
+    $userId = session()->get('user_id');
+    $role   = session()->get('role');
+
+    if ($userId && $role) {
+        if ($role === 'admin') {
+            \App\Services\LogService::admin($userId, 'logged out');
+        } else {
+            \App\Services\LogService::user($userId, 'logged out');
+        }
     }
 
+    // Destroy session
+    session()->destroy();
+
+    return redirect()->to('/');
+}
    
    
     public function create_account()

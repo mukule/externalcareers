@@ -20,7 +20,7 @@ class JobModel extends Model
         'name',
         'reference_no',
         'job_type_id',
-        'discipline_id', 
+        'discipline_id',
         'job_summary',
         'job_description',
         'posts_needed',
@@ -49,14 +49,14 @@ class JobModel extends Model
     // -----------------------
     // Job Status
     // -----------------------
-    public function getStatus(array $job)
+    public function getStatus(array $job): string
     {
-        $today = date('Y-m-d');
+        $now   = date('Y-m-d H:i:s');
         $open  = $job['date_open'];
         $close = $job['date_close'];
 
-        if ($today < $open) return 'Upcoming';
-        if ($today >= $open && $today <= $close) return 'Open';
+        if ($now < $open) return 'Upcoming';
+        if ($now >= $open && $now <= $close) return 'Open';
         return 'Closed';
     }
 
@@ -173,69 +173,75 @@ class JobModel extends Model
         return ['qualifies' => true, 'reason' => ''];
     }
 
+    // -----------------------
     // Count total jobs
+    // -----------------------
     public function countTotalJobs(): int
     {
         return $this->countAllResults();
     }
 
+    // -----------------------
     // Count currently open jobs
+    // -----------------------
     public function countOpenJobs(): int
     {
-        $today = date('Y-m-d');
-        return $this->where('date_open <=', $today)
-                    ->where('date_close >=', $today)
+        $now = date('Y-m-d H:i:s');
+        return $this->where('date_open <=', $now)
+                    ->where('date_close >=', $now)
+                    ->where('active', 1)
                     ->countAllResults();
     }
 
+    // -----------------------
     // Get open jobs by job type
-   
-   
+    // -----------------------
     public function getOpenJobsByType(int $jobTypeId, array $filters = []): array
-{
-    $today = date('Y-m-d');
+    {
+        $now = date('Y-m-d H:i:s');
 
-    $builder = $this->select('jobs.*, education_levels.name AS minimum_education')
-        ->join('job_specialities', 'job_specialities.job_id = jobs.id', 'left')
-        ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
-        ->where('jobs.job_type_id', $jobTypeId)
-        ->where('jobs.active', 1)
-        ->where('jobs.date_open <=', $today)
-        ->where('jobs.date_close >=', $today);
+        $builder = $this->select('jobs.*, education_levels.name AS minimum_education')
+            ->join('job_specialities', 'job_specialities.job_id = jobs.id', 'left')
+            ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
+            ->where('jobs.job_type_id', $jobTypeId)
+            ->where('jobs.active', 1)
+            ->where('jobs.date_open <=', $now)
+            ->where('jobs.date_close >=', $now);
 
-    // Apply filters
-    if (!empty($filters['name'])) {
-        $builder->like('jobs.name', $filters['name']);
+        // Apply filters
+        if (!empty($filters['name'])) {
+            $builder->like('jobs.name', $filters['name']);
+        }
+
+        if (!empty($filters['reference_no'])) {
+            $builder->like('jobs.reference_no', $filters['reference_no']);
+        }
+
+        if (!empty($filters['discipline_id'])) {
+            $builder->where('jobs.discipline_id', $filters['discipline_id']);
+        }
+
+        if (!empty($filters['field_id'])) {
+            $builder->where('job_specialities.field_id', $filters['field_id']);
+        }
+
+        return $builder
+            ->groupBy('jobs.id')
+            ->orderBy('jobs.date_open', 'ASC')
+            ->findAll();
     }
 
-    if (!empty($filters['reference_no'])) {
-        $builder->like('jobs.reference_no', $filters['reference_no']);
-    }
-
-    if (!empty($filters['discipline_id'])) {
-        $builder->where('jobs.discipline_id', $filters['discipline_id']);
-    }
-
-    if (!empty($filters['field_id'])) {
-        $builder->where('job_specialities.field_id', $filters['field_id']);
-    }
-
-    return $builder
-        ->groupBy('jobs.id') 
-        ->orderBy('jobs.date_open', 'ASC')
-        ->findAll();
-}
-
-
+    // -----------------------
     // Get open jobs by job type and optional discipline
+    // -----------------------
     public function getOpenJobsByTypeAndDiscipline(int $jobTypeId, ?int $disciplineId = null): array
     {
-        $today = date('Y-m-d');
+        $now = date('Y-m-d H:i:s');
 
         $builder = $this->where('job_type_id', $jobTypeId)
                         ->where('active', 1)
-                        ->where('date_open <=', $today)
-                        ->where('date_close >=', $today);
+                        ->where('date_open <=', $now)
+                        ->where('date_close >=', $now);
 
         if ($disciplineId !== null) {
             $builder->where('discipline_id', $disciplineId);

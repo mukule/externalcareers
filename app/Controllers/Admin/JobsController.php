@@ -48,11 +48,11 @@ class JobsController extends BaseController
         $this->jobDiscipline   = new JobDisciplineModel();
     }
 
-    /** List all jobs */
+    
    
-public function index()
+    public function index()
 {
-    $perPage = 20; // number of jobs per page
+    $perPage = 20; 
     $page = (int) $this->request->getGet('page') ?: 1;
 
     // Get filter values from GET parameters
@@ -91,15 +91,26 @@ public function index()
     $jobs = $builder->paginate($perPage, 'default', $page);
     $pager = $this->jobModel->pager;
 
-    $today = date('Y-m-d');
+    $now = date('Y-m-d H:i:s'); // Current datetime
+
     foreach ($jobs as &$job) {
-        $job['status'] = ($today < $job['date_open'])
-                            ? 'Upcoming'
-                            : (($today > $job['date_close']) ? 'Closed' : 'Open');
+        // Determine status based on datetime
+        if ($now < $job['date_open']) {
+            $job['status'] = 'Upcoming';
+        } elseif ($now > $job['date_close']) {
+            $job['status'] = 'Closed';
+        } else {
+            $job['status'] = 'Open';
+        }
+
         $job['fields_of_study'] = $this->jobSpeciality->getByJob($job['id']);
+
+        // Optional: format dates for display (only date, no time)
+        $job['date_open']  = date('Y-m-d', strtotime($job['date_open']));
+        $job['date_close'] = date('Y-m-d', strtotime($job['date_close']));
     }
 
-    // Load job types and disciplines for filters
+    
     $jobTypes = $this->jobType->findAll();
     $disciplines = $this->jobDiscipline->findAll();
 
@@ -115,23 +126,37 @@ public function index()
     ]);
 }
    
-    public function toggle($id)
-    {
-        $job = $this->jobModel->find($id);
 
-        if (!$job) {
-            return redirect()->back()->with('error', 'Job not found.');
-        }
+public function toggle($id)
+{
+    $job = $this->jobModel->find($id);
 
-        // Toggle the active status
-        $newStatus = $job['active'] ? 0 : 1;
-        $this->jobModel->update($id, ['active' => $newStatus]);
-
-        $message = $newStatus ? 'Job published successfully.' : 'Job unpublished successfully.';
-        return redirect()->back()->with('success', $message);
+    if (!$job) {
+        return redirect()->back()->with('error', 'Job not found.');
     }
 
-    /** Show form for creating a new job */
+    // Toggle the active status
+    $newStatus = $job['active'] ? 0 : 1;
+    $this->jobModel->update($id, ['active' => $newStatus]);
+
+    // Prepare status text
+    $statusText = $newStatus ? 'published' : 'unpublished';
+
+    // 🔹 Admin log
+    try {
+        \App\Services\LogService::admin(
+            session()->get('user_id'),
+            "Job {$statusText}: {$job['name']} (Reference: {$job['reference_no']}, ID: {$job['id']})"
+        );
+    } catch (\Throwable $e) {
+        log_message('error', 'Admin Log Failed: ' . $e->getMessage());
+    }
+
+    $message = $newStatus ? 'Job published successfully.' : 'Job unpublished successfully.';
+    return redirect()->back()->with('success', $message);
+}
+
+    
     public function create()
     {
         return view('admin/create_job', [
@@ -144,36 +169,47 @@ public function index()
         ]);
     }
 
-    /** Store new job */
     public function store()
-    {
-        $data = $this->request->getPost();
-        $data['reference_no'] = trim($data['reference_no']);
+{
+    $data = $this->request->getPost();
+    $data['reference_no'] = trim($data['reference_no']);
 
-        $rules = $this->validationRules;
-        $rules['reference_no'] .= '|is_unique[jobs.reference_no]';
+    $rules = $this->validationRules;
+    $rules['reference_no'] .= '|is_unique[jobs.reference_no]';
 
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
-        }
-
-        $data['certification_required']    = $data['certification_required'] ?? 0;
-        $data['membership_required']       = $data['membership_required'] ?? 0;
-        $data['higher_education_required'] = $data['higher_education_required'] ?? 0;
-        $data['discipline_id']             = $data['discipline_id'] ?? null;
-        $data['active']                    = 0;
-        $data['created_by']                = session()->get('user_id');
-
-        $jobId = $this->jobModel->insert($data);
-
-        // Assign fields of study
-        $fieldIds = $data['fields_of_study'] ?? [];
-        if (!empty($fieldIds)) {
-            $this->jobSpeciality->assignFields($jobId, $fieldIds);
-        }
-
-        return redirect()->to('admin/jobs')->with('success', 'Job created successfully.');
+    if (!$this->validate($rules)) {
+        return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
     }
+
+    $data['certification_required']    = $data['certification_required'] ?? 0;
+    $data['membership_required']       = $data['membership_required'] ?? 0;
+    $data['higher_education_required'] = $data['higher_education_required'] ?? 0;
+    $data['discipline_id']             = $data['discipline_id'] ?? null;
+    $data['active']                    = 0;
+    $data['created_by']                = session()->get('user_id');
+
+    // Insert job
+    $jobId = $this->jobModel->insert($data);
+
+    // Assign fields of study
+    $fieldIds = $data['fields_of_study'] ?? [];
+    if (!empty($fieldIds)) {
+        $this->jobSpeciality->assignFields($jobId, $fieldIds);
+    }
+
+    // 🔹 Admin log
+    try {
+        \App\Services\LogService::admin(
+            session()->get('user_id'), 
+            "Created new job: {$data['name']} (Reference: {$data['reference_no']}, ID: {$jobId})"
+        );
+    } catch (\Throwable $e) {
+        log_message('error', 'Admin Log Failed: ' . $e->getMessage());
+    }
+
+    return redirect()->to('admin/jobs')->with('success', 'Job created successfully.');
+}
+
 
     /** Show edit form */
     public function edit($uuid)
@@ -198,36 +234,50 @@ public function index()
     }
 
     /** Update an existing job */
+  
     public function update($uuid)
-    {
-        $job = $this->jobModel->where('uuid', $uuid)->first();
-        if (!$job) {
-            return redirect()->back()->with('error', 'Job not found.');
-        }
-
-        $data = $this->request->getPost();
-        $data['reference_no'] = trim($data['reference_no']);
-
-        $rules = $this->validationRules;
-        $rules['reference_no'] = 'required|string|max_length[100]|is_unique[jobs.reference_no,id,' . $job['id'] . ']';
-
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
-        }
-
-        $data['certification_required']    = $data['certification_required'] ?? 0;
-        $data['membership_required']       = $data['membership_required'] ?? 0;
-        $data['higher_education_required'] = $data['higher_education_required'] ?? 0;
-        $data['discipline_id']             = $data['discipline_id'] ?? null;
-
-        $this->jobModel->update($job['id'], $data);
-
-        // Update fields of study
-        $fieldIds = $data['fields_of_study'] ?? [];
-        $this->jobSpeciality->assignFields($job['id'], $fieldIds);
-
-        return redirect()->to('admin/jobs')->with('success', 'Job updated successfully.');
+{
+    $job = $this->jobModel->where('uuid', $uuid)->first();
+    if (!$job) {
+        return redirect()->back()->with('error', 'Job not found.');
     }
+
+    $data = $this->request->getPost();
+    $data['reference_no'] = trim($data['reference_no']);
+
+    $rules = $this->validationRules;
+    $rules['reference_no'] = 'required|string|max_length[100]|is_unique[jobs.reference_no,id,' . $job['id'] . ']';
+
+    if (!$this->validate($rules)) {
+        return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
+    }
+
+    // Ensure the job is unpublished after update
+    $data['active'] = 0;
+
+    $data['certification_required']    = $data['certification_required'] ?? 0;
+    $data['membership_required']       = $data['membership_required'] ?? 0;
+    $data['higher_education_required'] = $data['higher_education_required'] ?? 0;
+    $data['discipline_id']             = $data['discipline_id'] ?? null;
+
+    $this->jobModel->update($job['id'], $data);
+
+    // Update fields of study
+    $fieldIds = $data['fields_of_study'] ?? [];
+    $this->jobSpeciality->assignFields($job['id'], $fieldIds);
+
+    // 🔹 Log admin activity
+    try {
+        \App\Services\LogService::admin(
+            session()->get('user_id'),
+            'Updated job vacancy: ' . ($job['name'] ?? 'Unknown') . ' (Reference: ' . ($job['reference_no'] ?? '') . ')'
+        );
+    } catch (\Throwable $e) {
+        log_message('error', 'Admin Log Failed: ' . $e->getMessage());
+    }
+
+    return redirect()->to('admin/jobs')->with('success', 'Job updated successfully.');
+}
 
     /** Show detailed view of a job */
     public function show($uuid)

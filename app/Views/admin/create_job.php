@@ -127,8 +127,9 @@
                         <label class="form-label fw-semibold">Date Open <span class="text-danger">*</span></label>
                     </div>
                     <div class="col-md-8">
-                        <input type="date" name="date_open" class="form-control"
-                               value="<?= esc($job['date_open'] ?? old('date_open')) ?>" required>
+                        <input type="datetime-local" name="date_open" class="form-control"
+                               value="<?= isset($job['date_open']) ? date('Y-m-d\TH:i', strtotime($job['date_open'])) : old('date_open') ?>"
+                               required>
                     </div>
 
                     <!-- Date Close -->
@@ -136,8 +137,9 @@
                         <label class="form-label fw-semibold">Date Close <span class="text-danger">*</span></label>
                     </div>
                     <div class="col-md-8">
-                        <input type="date" name="date_close" class="form-control"
-                               value="<?= esc($job['date_close'] ?? old('date_close')) ?>" required>
+                        <input type="datetime-local" name="date_close" class="form-control"
+                               value="<?= isset($job['date_close']) ? date('Y-m-d\TH:i', strtotime($job['date_close'])) : old('date_close') ?>"
+                               required>
                     </div>
 
                     <!-- Job Summary -->
