@@ -72,4 +72,51 @@ class MailQueueModel extends Model
             'error_message' => $errorMessage
         ]);
     }
+
+
+    public function getFiltered(array $filters = [], int $perPage = 20, int $page = 1)
+{
+    $builder = $this->builder();
+
+    // Apply status filter
+    if (!empty($filters['status'])) {
+        $builder->where('status', $filters['status']);
+    }
+
+    // Apply recipient email filter (partial match)
+    if (!empty($filters['to_email'])) {
+        $builder->like('to_email', $filters['to_email']);
+    }
+
+    // Apply subject filter (partial match)
+    if (!empty($filters['subject'])) {
+        $builder->like('subject', $filters['subject']);
+    }
+
+    // Filter by created_at date range
+    if (!empty($filters['date_from'])) {
+        $builder->where('created_at >=', $filters['date_from'] . ' 00:00:00');
+    }
+    if (!empty($filters['date_to'])) {
+        $builder->where('created_at <=', $filters['date_to'] . ' 23:59:59');
+    }
+
+    // Pagination
+    $builder->orderBy('created_at', 'DESC');
+    $offset = ($page - 1) * $perPage;
+    $data = $builder->get($perPage, $offset)->getResultArray();
+
+    // Total count for pagination
+    $total = $builder->countAllResults(false); // false to not reset builder
+
+    return [
+        'data'       => $data,
+        'total'      => $total,
+        'perPage'    => $perPage,
+        'currentPage'=> $page,
+        'totalPages' => ceil($total / $perPage),
+    ];
+}
+
+
 }

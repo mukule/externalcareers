@@ -88,6 +88,11 @@
                         </nav>
                     </div>
 
+                    <a class="nav-link <?= (uri_string() === 'admin/mail-queue' ? 'active' : '') ?>" href="<?= base_url('admin/mail-queue') ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-user-shield"></i></div>
+                        Mail Queue   
+                    </a>
+
                  
 
                 <?php else: ?>

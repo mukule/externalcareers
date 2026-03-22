@@ -4,7 +4,6 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\CountyModel;
-use CodeIgniter\Controller;
 
 class CountyController extends BaseController
 {
@@ -15,25 +14,30 @@ class CountyController extends BaseController
         $this->countyModel = new CountyModel();
     }
 
-  
+    /**
+     * List all counties
+     */
     public function index()
     {
         $counties = $this->countyModel->findAll();
         return view('admin/counties', ['counties' => $counties]);
     }
 
-   
+    /**
+     * Add a new county
+     */
     public function add()
     {
         helper('form');
 
         if ($this->request->getMethod() === 'POST') {
             $data = [
-                'name' => $this->request->getPost('name'),
-                'code' => $this->request->getPost('code'),
+                'title'        => $this->request->getPost('title'),
+                'active'       => 1,
+                'date_created' => date('Y-m-d H:i:s'),
             ];
 
-            $this->countyModel->save($data);
+            $this->countyModel->insert($data);
 
             return redirect()->to('/admin/counties')->with('success', 'County added successfully.');
         }
@@ -45,49 +49,46 @@ class CountyController extends BaseController
     }
 
     /**
-     * Edit a county by UUID
+     * Edit a county by ID
      */
-    public function edit($uuid)
+    public function edit($id)
     {
         helper('form');
 
-        if ($this->request->getMethod() !== 'POST') {
-            log_message('debug', 'County Edit UUID received: ' . $uuid);
-
-            $county = $this->countyModel->getCountyByUUID($uuid);
-
-            if (!$county) {
-                return redirect()->back()->with('error', 'County not found.');
-            }
-
-            return view('admin/county_form', [
-                'action' => 'edit',
-                'county' => $county
-            ]);
+        $county = $this->countyModel->find($id);
+        if (!$county) {
+            return redirect()->back()->with('error', 'County not found.');
         }
 
-        // POST request: save edited data
-        $data = [
-            'id'   => $this->request->getPost('id'),
-            'name' => $this->request->getPost('name'),
-            'code' => $this->request->getPost('code'),
-        ];
+        if ($this->request->getMethod() === 'POST') {
+            $data = [
+                'id'    => $id,
+                'title' => $this->request->getPost('title'),
+                'active'=> $this->request->getPost('active') ? 1 : 0,
+            ];
 
-        $this->countyModel->save($data);
+            $this->countyModel->save($data);
 
-        return redirect()->to('/admin/counties')->with('success', 'County updated successfully.');
+            return redirect()->to('/admin/counties')->with('success', 'County updated successfully.');
+        }
+
+        return view('admin/county_form', [
+            'action' => 'edit',
+            'county' => $county
+        ]);
     }
 
     /**
-     * Delete a county by UUID
+     * Delete a county by ID
      */
-    public function delete($uuid)
+    public function delete($id)
     {
-        $county = $this->countyModel->getCountyByUUID($uuid);
+        $county = $this->countyModel->find($id);
         if ($county) {
-            $this->countyModel->delete($county['id']);
+            $this->countyModel->delete($id);
+            return redirect()->to('/admin/counties')->with('success', 'County deleted successfully.');
         }
 
-        return redirect()->to('/admin/counties')->with('success', 'County deleted successfully.');
+        return redirect()->back()->with('error', 'County not found.');
     }
 }

@@ -11,7 +11,7 @@
 
     <div class="card shadow-sm mt-3">
         <div class="card-body">
-            <form action="<?= $action ?>" method="post">
+            <form action="<?= base_url('admin/counties/' . ($county ? 'edit/' . $county['id'] : 'add')) ?>" method="post">
                 <?= csrf_field() ?>
 
                 <?php if (isset($county)): ?>
@@ -23,21 +23,10 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">County Name <span class="text-danger">*</span></label>
                         <input type="text"
-                               name="name"
-                               value="<?= esc($county['name'] ?? old('name')) ?>"
+                               name="title"
+                               value="<?= esc($county['title'] ?? old('title')) ?>"
                                class="form-control"
                                placeholder="Enter county name"
-                               required>
-                    </div>
-
-                    <!-- County Code -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">County Code <span class="text-danger">*</span></label>
-                        <input type="text"
-                               name="code"
-                               value="<?= esc($county['code'] ?? old('code')) ?>"
-                               class="form-control"
-                               placeholder="Enter county code"
                                required>
                     </div>
                 </div>

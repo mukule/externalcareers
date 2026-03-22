@@ -3,16 +3,15 @@
 
 <div class="container-fluid px-4">
   
-     <div class="card mb-3 shadow-sm">
+    <div class="card mb-3 shadow-sm">
         <div class="card-body d-flex justify-content-between align-items-center">
             <nav aria-label="breadcrumb" class="mb-0">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="<?= base_url('admin') ?>">Dashboard</a></li>
-                      <li class="breadcrumb-item"><a href="<?= base_url('admin/staffs') ?>">Staffs</a></li>
+                    <li class="breadcrumb-item"><a href="<?= base_url('admin/staffs') ?>">Staffs</a></li>
                     <li class="breadcrumb-item active" aria-current="page"><?= esc($title) ?></li>
                 </ol>
             </nav>
-           
         </div>
     </div>
 
@@ -25,6 +24,14 @@
                 <?php if (!empty($staff['id'])): ?>
                     <input type="hidden" name="existing_user" value="<?= esc($staff['id']) ?>">
                 <?php endif; ?>
+
+                <!-- Staff Number / National ID -->
+                <div class="mb-3">
+                    <label for="national_id" class="form-label">Staff Number</label>
+                    <input type="text" name="national_id" id="national_id" class="form-control"
+                    value="<?= set_value('national_id', $nationalId ?? '') ?>"
+                    placeholder="Enter Staff Number">
+                </div>
 
                 <!-- First Name -->
                 <div class="mb-3">

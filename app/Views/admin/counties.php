@@ -18,8 +18,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>#</th>
-                                <th>Name</th>
-                                <th>Code</th>
+                                <th>County Name</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -28,8 +27,7 @@
                             <?php foreach ($counties as $index => $county): ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
-                                    <td><?= esc($county['name']) ?></td>
-                                    <td><?= esc($county['code']) ?></td>
+                                    <td><?= esc($county['title']) ?></td>
                                     <td class="text-center">
                                         <?php if ($county['active']): ?>
                                             <span class="badge bg-success">Active</span>
@@ -38,10 +36,10 @@
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <a href="<?= base_url('admin/counties/edit/' . $county['uuid']) ?>" class="btn btn-sm btn-outline-primary">
+                                        <a href="<?= base_url('admin/counties/edit/' . $county['id']) ?>" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="<?= base_url('admin/counties/delete/' . $county['uuid']) ?>" 
+                                        <a href="<?= base_url('admin/counties/delete/' . $county['id']) ?>" 
                                            class="btn btn-sm btn-outline-danger"
                                            onclick="return confirm('Are you sure you want to delete this county?');">
                                            <i class="fas fa-trash"></i>

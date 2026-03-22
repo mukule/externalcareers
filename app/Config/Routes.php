@@ -151,6 +151,7 @@ $routes->get('profile-review/(:segment)', 'ProfileController::resume/$1', ['as' 
 $routes->get('get-user-by-email', 'Admin\StaffController::getUserByEmail');
 $routes->get('admin-logs', 'Admin\AdminLogs::index');
 $routes->get('user-logs', 'Admin\UserLogs::index');
+$routes->get('mail-queue', 'Admin\MailQueueController::index', ['as' => 'admin.mailqueue']);
 
 });
 

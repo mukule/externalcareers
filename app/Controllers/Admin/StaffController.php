@@ -97,6 +97,7 @@ public function form($uuid = null)
 {
     $staff = null;
     $assignedRoles = [];
+    $nationalId = null;
 
     // Fetch staff if editing
     if ($uuid) {
@@ -111,6 +112,13 @@ public function form($uuid = null)
             $userRoleModel->getRolesForUser($staff['id']),
             'id'
         );
+
+        // Fetch staff national_id from user_details if exists
+        $userDetailsModel = new \App\Models\UserDetailsModel();
+        $details = $userDetailsModel->where('user_id', $staff['id'])->first();
+        if ($details && !empty($details['national_id'])) {
+            $nationalId = $details['national_id'];
+        }
     }
 
     // Fetch all roles for checkboxes, excluding role named "applicant"
@@ -123,10 +131,11 @@ public function form($uuid = null)
         'title'          => $uuid ? 'Edit Staff' : 'Add Staff',
         'staff'          => $staff,
         'assignedRoles'  => $assignedRoles,   
-        'allRoles'       => $allRoles,        
-        'applicants'     => $this->userModel->where('role', 'applicant')->where('active', 1)->findAll(),
+        'allRoles'       => $allRoles,
+        'nationalId'     => $nationalId,       // pass to view
     ]);
 }
+
 
 public function save()
 {
@@ -143,9 +152,10 @@ public function save()
         ];
     } else {
         $rules = [
-            'first_name' => 'required|string|max_length[100]',
-            'last_name'  => 'required|string|max_length[100]',
-            'email'      => 'required|valid_email|max_length[150]|is_unique[users.email]'
+            'first_name'   => 'required|string|max_length[100]',
+            'last_name'    => 'required|string|max_length[100]',
+            'email'        => 'required|valid_email|max_length[150]|is_unique[users.email]',
+            'national_id'  => 'required|string|max_length[50]',
         ];
     }
 
@@ -154,22 +164,24 @@ public function save()
     }
 
     $userRoleModel = new \App\Models\UserRoleModel();
+    $userDetailsModel = new \App\Models\UserDetailsModel(); // Ensure you have this model
 
-   
+    // -----------------------
+    // Updating an existing user
+    // -----------------------
     if (!empty($data['existing_user'])) {
         $user = $this->userModel->find($data['existing_user']);
         if (!$user) {
             return redirect()->back()->with('error', 'Selected user not found.');
         }
 
-      
+        // Remove old roles
         $userRoleModel->where('user_id', $user['id'])->delete();
 
-        
+        // Prepare roles
         $rolesToAssign = [];
         if (!empty($data['roles'])) {
             foreach ($data['roles'] as $roleId) {
-                
                 if ($roleId === 'applicant') continue;
                 $rolesToAssign[] = intval($roleId);
             }
@@ -183,15 +195,30 @@ public function save()
             ]);
         }
 
-       
+        // Update main role
         $mainRole = (!empty($data['roles']) && in_array('applicant', $data['roles'])) ? 'applicant' : (!empty($rolesToAssign) ? 'admin' : 'applicant');
-
         $this->userModel->update($user['id'], ['role' => $mainRole]);
 
-        return redirect()->to(base_url('admin/staffs'))->with('success', 'User roles updated successfully.');
+        // -----------------------
+        // Update or create user_details
+        // -----------------------
+        $details = $userDetailsModel->where('user_id', $user['id'])->first();
+        $detailsData = [
+            'national_id' => $data['national_id'] ?? null,
+        ];
+        if ($details) {
+            $userDetailsModel->update($details['id'], $detailsData);
+        } else {
+            $detailsData['user_id'] = $user['id'];
+            $userDetailsModel->insert($detailsData);
+        }
+
+        return redirect()->to(base_url('admin/staffs'))->with('success', 'User roles and details updated successfully.');
     }
 
-  
+    // -----------------------
+    // Creating a new user
+    // -----------------------
     $rolesToAssign = [];
     if (!empty($data['roles'])) {
         foreach ($data['roles'] as $roleId) {
@@ -200,7 +227,6 @@ public function save()
         }
     }
 
-   
     $password = bin2hex(random_bytes(5));
 
     $userData = [
@@ -214,7 +240,7 @@ public function save()
 
     $userId = $this->userModel->insert($userData);
 
-    
+    // Insert roles
     foreach ($rolesToAssign as $roleId) {
         $userRoleModel->insert([
             'user_id' => $userId,
@@ -222,7 +248,17 @@ public function save()
         ]);
     }
 
-    
+    // -----------------------
+    // Create user_details
+    // -----------------------
+    $detailsData = [
+        'user_id'     => $userId,
+        'national_id' => $data['national_id'] ?? null,
+        'active'      => 1,
+    ];
+    $userDetailsModel->insert($detailsData);
+
+    // Send email notification
     $emailData = [
         'first_name'   => $data['first_name'],
         'email'        => $data['email'],
