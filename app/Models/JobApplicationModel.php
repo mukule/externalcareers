@@ -229,8 +229,7 @@ class JobApplicationModel extends Model
     }
 
 
-
-    public function getJobsWithApplicationCounts(): array
+    public function getJobsWithApplicationCounts(int $limit = 20, int $offset = 0): array
 {
     return $this->db->table('jobs j')
         ->select('
@@ -243,8 +242,82 @@ class JobApplicationModel extends Model
         ->join('job_applications ja', 'ja.job_id = j.id', 'left')
         ->groupBy('j.id')
         ->orderBy('j.created_at', 'DESC')
+        ->limit($limit, $offset)   // <-- pagination
         ->get()
         ->getResultArray();
+}
+
+
+
+public function getJobsWithApplicationCountsOnly(array $filters = [], int $limit = 20, int $offset = 0): array
+{
+    $builder = $this->db->table('jobs j')
+        ->select('
+            j.id,
+            j.name,
+            j.uuid,
+            j.reference_no,
+            j.date_open,
+            j.date_close,
+            j.job_type_id,
+            j.discipline_id,
+            j.created_at,
+            COUNT(ja.id) AS applications_count
+        ')
+        ->join('job_applications ja', 'ja.job_id = j.id', 'left')
+        ->groupBy('j.id')
+        ->orderBy('j.created_at', 'DESC');
+
+    // Apply filters
+    if (!empty($filters['name'])) {
+        $builder->like('j.name', $filters['name']);
+    }
+
+    if (!empty($filters['ref_no'])) {
+        $builder->like('j.reference_no', $filters['ref_no']);
+    }
+
+    if (!empty($filters['job_type_id'])) {
+        $builder->where('j.job_type_id', $filters['job_type_id']);
+    }
+
+    if (!empty($filters['discipline_id'])) {
+        $builder->where('j.discipline_id', $filters['discipline_id']);
+    }
+
+    // Apply pagination
+    $builder->limit($limit, $offset);
+
+    return $builder->get()->getResultArray();
+}
+
+/**
+ * Helper to count total jobs with filters for pagination
+ */
+public function countJobsWithFilters(array $filters = []): int
+{
+    $builder = $this->db->table('jobs j')
+        ->select('j.id')
+        ->join('job_applications ja', 'ja.job_id = j.id', 'left')
+        ->groupBy('j.id');
+
+    if (!empty($filters['name'])) {
+        $builder->like('j.name', $filters['name']);
+    }
+
+    if (!empty($filters['ref_no'])) {
+        $builder->like('j.reference_no', $filters['ref_no']);
+    }
+
+    if (!empty($filters['job_type_id'])) {
+        $builder->where('j.job_type_id', $filters['job_type_id']);
+    }
+
+    if (!empty($filters['discipline_id'])) {
+        $builder->where('j.discipline_id', $filters['discipline_id']);
+    }
+
+    return count($builder->get()->getResultArray());
 }
 
 

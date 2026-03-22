@@ -49,28 +49,71 @@ class JobsController extends BaseController
     }
 
     /** List all jobs */
-    public function index()
-    {
-        $jobs = $this->jobModel
-            ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name, jobs.discipline_id')
-            ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
-            ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
-            ->orderBy('jobs.created_at', 'DESC')
-            ->findAll();
+   
+public function index()
+{
+    $perPage = 20; // number of jobs per page
+    $page = (int) $this->request->getGet('page') ?: 1;
 
-        $today = date('Y-m-d');
-        foreach ($jobs as &$job) {
-            $job['status'] = ($today < $job['date_open']) ? 'Upcoming' : (($today > $job['date_close']) ? 'Closed' : 'Open');
-            $job['fields_of_study'] = $this->jobSpeciality->getByJob($job['id']);
-        }
+    // Get filter values from GET parameters
+    $filters = [
+        'name'          => $this->request->getGet('name'),
+        'ref_no'        => $this->request->getGet('ref_no'),
+        'job_type_id'   => $this->request->getGet('job_type_id'),
+        'discipline_id' => $this->request->getGet('discipline_id')
+    ];
 
-        return view('admin/jobs', [
-            'title' => 'Job Vacancies',
-            'jobs'  => $jobs
-        ]);
+    // Remove empty filters
+    $filters = array_filter($filters, fn($v) => $v !== null && $v !== '');
+
+    // Base query
+    $builder = $this->jobModel
+        ->select('jobs.*, job_types.display_name AS job_type_name, education_levels.name AS education_name, jobs.discipline_id')
+        ->join('job_types', 'job_types.id = jobs.job_type_id', 'left')
+        ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
+        ->orderBy('jobs.created_at', 'DESC');
+
+    // Apply filters
+    if (!empty($filters['name'])) {
+        $builder->like('jobs.name', $filters['name']);
+    }
+    if (!empty($filters['ref_no'])) {
+        $builder->like('jobs.reference_no', $filters['ref_no']);
+    }
+    if (!empty($filters['job_type_id'])) {
+        $builder->where('jobs.job_type_id', $filters['job_type_id']);
+    }
+    if (!empty($filters['discipline_id'])) {
+        $builder->where('jobs.discipline_id', $filters['discipline_id']);
     }
 
+    // Paginate after applying filters
+    $jobs = $builder->paginate($perPage, 'default', $page);
+    $pager = $this->jobModel->pager;
 
+    $today = date('Y-m-d');
+    foreach ($jobs as &$job) {
+        $job['status'] = ($today < $job['date_open'])
+                            ? 'Upcoming'
+                            : (($today > $job['date_close']) ? 'Closed' : 'Open');
+        $job['fields_of_study'] = $this->jobSpeciality->getByJob($job['id']);
+    }
+
+    // Load job types and disciplines for filters
+    $jobTypes = $this->jobType->findAll();
+    $disciplines = $this->jobDiscipline->findAll();
+
+    return view('admin/jobs', [
+        'title'       => 'Job Vacancies',
+        'jobs'        => $jobs,
+        'pager'       => $pager,
+        'currentPage' => $page,
+        'perPage'     => $perPage,
+        'filters'     => $filters,
+        'jobTypes'    => $jobTypes,
+        'disciplines' => $disciplines,
+    ]);
+}
    
     public function toggle($id)
     {
