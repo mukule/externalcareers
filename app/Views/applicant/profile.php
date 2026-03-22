@@ -164,7 +164,7 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Field of Study</label>
-                        <select class="form-select" name="field_of_study_id">
+                        <select class="form-select" name="field_of_study_id" required>
                             <option value="">Select Field</option>
                             <?php foreach ($fieldsOfStudy as $field): ?>
                                 <option value="<?= $field['id'] ?>"
@@ -177,7 +177,7 @@
 
                     <div class="col-md-6">
                         <label class="form-label">Highest Level of Study</label>
-                        <select class="form-select" name="highest_level_of_study_id">
+                        <select class="form-select" name="highest_level_of_study_id" required>
                             <option value="">Select Level</option>
                             <?php foreach ($levelsOfStudy as $level): ?>
                                 <option value="<?= $level['id'] ?>"
