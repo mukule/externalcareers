@@ -32,6 +32,7 @@ $routes->post('auth/update-password', 'AuthController::updatePassword');
 // Job detail page
 $routes->get('jobs/(:segment)', 'Home::jobDetail/$1');
 $routes->get('job_type/(:segment)', 'Home::jobsByType/$1');
+$routes->get('my-applications', 'Home::myApplications', ['filter' => 'auth']);
 
 
 

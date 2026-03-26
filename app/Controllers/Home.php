@@ -161,6 +161,24 @@ public function jobsByType($jobTypeUuid = null)
 }
 
 
+public function myApplications()
+{
+    $userId = session()->get('user_id');
+
+    if (!$userId) {
+        return redirect()->to('/login')->with('error', 'Please login first.');
+    }
+
+    // Fetch applications (use the method we created in the model)
+    $applications = $this->jobApplicationModel->getUserApplicationsSimple($userId);
+
+    return view('pages/my_applications', [
+        'title'        => 'My Applications',
+        'applications' => $applications
+    ]);
+}
+
+
 
 public function adminDashboard()
 {

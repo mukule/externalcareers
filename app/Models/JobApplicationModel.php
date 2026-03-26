@@ -332,4 +332,21 @@ public function countJobsWithFilters(array $filters = []): int
 }
 
 
+public function getUserApplicationsSimple(int $userId): array
+{
+    return $this->db->table('job_applications ja')
+        ->select('
+            ja.ref_no AS application_ref,
+            ja.status,
+            ja.created_at,
+            j.name AS job_name,
+            j.reference_no AS job_ref
+        ')
+        ->join('jobs j', 'j.id = ja.job_id', 'left')
+        ->where('ja.user_id', $userId)
+        ->orderBy('ja.created_at', 'DESC')
+        ->get()
+        ->getResultArray();
+}
+
 }

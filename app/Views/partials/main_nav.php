@@ -26,6 +26,7 @@
                 <!-- Main Navigation -->
                
                 <li class="nav-item"><a class="nav-link px-3" href="#" target="_blank">Main website</a></li>
+              
                 
                 <li class="nav-item"><a class="nav-link px-3" href="#">How to Apply</a></li>
                 <li class="nav-item"><a class="nav-link px-3" href="#">FAQs</a></li>
@@ -34,6 +35,9 @@
                 <?php if (session()->get('user_id')): ?>
                   <li class="nav-item">
                         <a class="nav-link px-3" href="<?= base_url('applicant/profile') ?>">Resume</a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link px-3" href="<?= base_url('my-applications') ?>">My Applications</a>
                     </li>
 
                     <li class="nav-item dropdown">
