@@ -25,7 +25,7 @@
 
                 <!-- Main Navigation -->
                
-                <li class="nav-item"><a class="nav-link px-3" href="#" target="_blank">Main website</a></li>
+                <li class="nav-item"><a class="nav-link px-3" href="https://www.kengen.co.ke/" target="_blank">Main website</a></li>
               
                 
                 <li class="nav-item"><a class="nav-link px-3" href="#">How to Apply</a></li>
