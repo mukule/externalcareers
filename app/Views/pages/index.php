@@ -68,7 +68,7 @@
                              alt="Banner">
                     <?php endif; ?>
                     <div class="carousel-overlay d-flex justify-content-center align-items-center">
-                        <div class="overlay-text text-center text-white">
+                        <div class="overlay-text text-center text-white p-4 rounded-3 bg-primary bg-opacity-75">
                             <h2 class="fw-bold mb-3"><?= esc($type['display_name']) ?></h2>
                             <p class="lead mb-3"><?= esc($type['description']) ?></p>
                         </div>
