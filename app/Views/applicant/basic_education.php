@@ -61,7 +61,7 @@
                                     <td><?= esc($edu['grade_attained'] ?? 'N/A') ?></td>
                                     <td>
                                         <?php if(!empty($edu['certificate'])): ?>
-                                            <a href="<?= base_url('uploads/certificates/' . $edu['certificate']) ?>" target="_blank">View file</a>
+                                            <a href="<?= base_url('uploads/certs/' . $edu['certificate']) ?>" target="_blank">View file</a>
                                         <?php else: ?>
                                             N/A
                                         <?php endif; ?>

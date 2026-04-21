@@ -25,10 +25,10 @@ class UserHigherEducationController extends BaseController
         $userId = session()->get('user_id');
 
         return view('applicant/higher_education', [
-            'title'      => 'Higher Education',
+            'title'       => 'Higher Education',
             'currentStep' => 4,
-            'educations' => $this->educationModel->getByUserId($userId),
-            'levels'     => $this->levelModel
+            'educations'  => $this->educationModel->getByUserId($userId),
+            'levels'      => $this->levelModel
                 ->where('active', 1)
                 ->orderBy('index', 'ASC')
                 ->findAll(),
@@ -41,10 +41,10 @@ class UserHigherEducationController extends BaseController
     public function create()
     {
         return view('applicant/higher_education_form', [
-            'title'  => 'Add Higher Education',
+            'title'       => 'Add Higher Education',
             'currentStep' => 4,
-            'action' => base_url('applicant/higher-education/store'),
-            'levels' => $this->levelModel
+            'action'      => base_url('applicant/higher-education/store'),
+            'levels'      => $this->levelModel
                 ->where('active', 1)
                 ->orderBy('index', 'ASC')
                 ->findAll(),
@@ -82,34 +82,64 @@ class UserHigherEducationController extends BaseController
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
-        $certificatePath = null;
+        // =========================
+        // DATE VALIDATION
+        // =========================
+        $start = $data['date_started'] ?? null;
+        $end   = $data['date_ended'] ?? null;
+        $today = date('Y-m-d');
 
-        try {
-            $file = $this->request->getFile('certificate');
-            if ($file && $file->getError() !== 4) {
-                if ($file->isValid() && !$file->hasMoved()) {
-                    $certificatePath = $file->getRandomName();
-                    $file->move(ROOTPATH . 'public/uploads/certificates', $certificatePath);
-                }
-            }
+        $errors = [];
 
-            $this->educationModel->insert([
-                'user_id'            => $userId,
-                'institution_name'   => $data['institution_name'],
-                'course_name'        => $data['course_name'],
-                'education_level_id' => $data['education_level_id'],
-                'class_attained'     => $data['class_attained'] ?? null,
-                'date_started'       => $data['date_started'] ?? null,
-                'date_ended'         => $data['date_ended'] ?? null,
-                'certificate'        => $certificatePath,
-                'active'             => 1,
-            ]);
-
-        } catch (\Exception $e) {
-            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        if ($start && $end && strtotime($end) < strtotime($start)) {
+            $errors['date_ended'] = 'End date cannot be earlier than start date.';
         }
 
-        return redirect()->to('/applicant/higher-education')->with('success', 'Higher education added successfully.');
+        if ($end && strtotime($end) > strtotime($today)) {
+            $errors['date_ended'] = 'End date cannot be in the future.';
+        }
+
+        if (!empty($errors)) {
+            return redirect()->back()->withInput()->with('error', $errors);
+        }
+
+        // =========================
+        // FILE UPLOAD (CERTS)
+        // =========================
+        $certificatePath = null;
+
+        $file = $this->request->getFile('certificate');
+
+        if ($file && $file->getError() !== 4) {
+            if ($file->isValid() && !$file->hasMoved()) {
+
+                // extra safety (2MB)
+                if ($file->getSize() > (2 * 1024 * 1024)) {
+                    return redirect()
+                        ->back()
+                        ->withInput()
+                        ->with('error', ['certificate' => 'File must not exceed 2MB.']);
+                }
+
+                $certificatePath = $file->getRandomName();
+                $file->move(ROOTPATH . 'public/uploads/certs', $certificatePath);
+            }
+        }
+
+        $this->educationModel->insert([
+            'user_id'            => $userId,
+            'institution_name'   => $data['institution_name'],
+            'course_name'        => $data['course_name'],
+            'education_level_id' => $data['education_level_id'],
+            'class_attained'     => $data['class_attained'] ?? null,
+            'date_started'       => $data['date_started'] ?? null,
+            'date_ended'         => $data['date_ended'] ?? null,
+            'certificate'        => $certificatePath,
+            'active'             => 1,
+        ]);
+
+        return redirect()->to('/applicant/higher-education')
+            ->with('success', 'Higher education added successfully.');
     }
 
     /**
@@ -128,11 +158,11 @@ class UserHigherEducationController extends BaseController
         }
 
         return view('applicant/higher_education_form', [
-            'title'  => 'Edit Higher Education',
+            'title'       => 'Edit Higher Education',
             'currentStep' => 4,
-            'action' => base_url('applicant/higher-education/update'),
-            'edu'    => $record,
-            'levels' => $this->levelModel
+            'action'      => base_url('applicant/higher-education/update'),
+            'edu'         => $record,
+            'levels'      => $this->levelModel
                 ->where('active', 1)
                 ->orderBy('index', 'ASC')
                 ->findAll(),
@@ -178,6 +208,27 @@ class UserHigherEducationController extends BaseController
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
+        // =========================
+        // DATE VALIDATION
+        // =========================
+        $start = $data['date_started'] ?? null;
+        $end   = $data['date_ended'] ?? null;
+        $today = date('Y-m-d');
+
+        $errors = [];
+
+        if ($start && $end && strtotime($end) < strtotime($start)) {
+            $errors['date_ended'] = 'End date cannot be earlier than start date.';
+        }
+
+        if ($end && strtotime($end) > strtotime($today)) {
+            $errors['date_ended'] = 'End date cannot be in the future.';
+        }
+
+        if (!empty($errors)) {
+            return redirect()->back()->withInput()->with('error', $errors);
+        }
+
         try {
             $file = $this->request->getFile('certificate');
             $certificateName = $record['certificate'];
@@ -185,14 +236,21 @@ class UserHigherEducationController extends BaseController
             if ($file && $file->getError() !== 4) {
                 if ($file->isValid() && !$file->hasMoved()) {
 
-                    // delete old certificate if exists
+                    if ($file->getSize() > (2 * 1024 * 1024)) {
+                        return redirect()
+                            ->back()
+                            ->withInput()
+                            ->with('error', ['certificate' => 'File must not exceed 2MB.']);
+                    }
+
+                    // delete old
                     if (!empty($record['certificate']) &&
-                        file_exists(ROOTPATH . 'public/uploads/certificates/' . $record['certificate'])) {
-                        unlink(ROOTPATH . 'public/uploads/certificates/' . $record['certificate']);
+                        file_exists(ROOTPATH . 'public/uploads/certs/' . $record['certificate'])) {
+                        unlink(ROOTPATH . 'public/uploads/certs/' . $record['certificate']);
                     }
 
                     $certificateName = $file->getRandomName();
-                    $file->move(ROOTPATH . 'public/uploads/certificates', $certificateName);
+                    $file->move(ROOTPATH . 'public/uploads/certs', $certificateName);
                 }
             }
 
@@ -210,7 +268,8 @@ class UserHigherEducationController extends BaseController
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->to('/applicant/higher-education')->with('success', 'Education updated successfully.');
+        return redirect()->to('/applicant/higher-education')
+            ->with('success', 'Education updated successfully.');
     }
 
     /**
@@ -230,8 +289,8 @@ class UserHigherEducationController extends BaseController
 
         try {
             if (!empty($record['certificate']) &&
-                file_exists(ROOTPATH . 'public/uploads/certificates/' . $record['certificate'])) {
-                unlink(ROOTPATH . 'public/uploads/certificates/' . $record['certificate']);
+                file_exists(ROOTPATH . 'public/uploads/certs/' . $record['certificate'])) {
+                unlink(ROOTPATH . 'public/uploads/certs/' . $record['certificate']);
             }
 
             $this->educationModel->delete($record['id']);
@@ -240,6 +299,7 @@ class UserHigherEducationController extends BaseController
             return redirect()->back()->with('error', $e->getMessage());
         }
 
-        return redirect()->to('/applicant/higher-education')->with('success', 'Education record deleted successfully.');
+        return redirect()->to('/applicant/higher-education')
+            ->with('success', 'Education record deleted successfully.');
     }
 }

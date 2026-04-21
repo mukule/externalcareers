@@ -43,7 +43,7 @@
                                     </td>
                                     <td>
                                         <?php if(!empty($exp['reference_file'])): ?>
-                                            <a href="<?= base_url('uploads/work_experience/' . $exp['reference_file']) ?>" target="_blank">View File</a>
+                                            <a href="<?= base_url('uploads/certs/' . $exp['reference_file']) ?>" target="_blank">View File</a>
                                         <?php else: ?>
                                             N/A
                                         <?php endif; ?>
@@ -72,7 +72,7 @@
                                                 <p><strong>Responsibilities / Job Description:</strong><br><?= nl2br(esc($exp['responsibilities'] ?? 'N/A')) ?></p>
                                                 <p><strong>Reference Letter:</strong> 
                                                     <?php if(!empty($exp['reference_file'])): ?>
-                                                        <a href="<?= base_url('uploads/work_experience/' . $exp['reference_file']) ?>" target="_blank">View File</a>
+                                                        <a href="<?= base_url('uploads/certs/' . $exp['reference_file']) ?>" target="_blank">View File</a>
                                                     <?php else: ?>
                                                         N/A
                                                     <?php endif; ?>

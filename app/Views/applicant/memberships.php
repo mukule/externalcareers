@@ -38,7 +38,7 @@
                                     <td><?= esc($membership['joined_date'] ?? 'N/A') ?></td>
                                     <td>
                                         <?php if($membership['certificate']): ?>
-                                            <a href="<?= base_url('uploads/memberships/' . $membership['certificate']) ?>" target="_blank">View PDF</a>
+                                            <a href="<?= base_url('uploads/certs/' . $membership['certificate']) ?>" target="_blank">View PDF</a>
                                         <?php else: ?>
                                             N/A
                                         <?php endif; ?>

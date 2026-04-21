@@ -282,7 +282,7 @@
                             <td><?= esc($mem['joined_date'] ?? '-') ?></td>
                             <td>
                                 <?php if (!empty($mem['certificate'])): ?>
-                                    <a href="<?= base_url('uploads/memberships/' . $mem['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
+                                    <a href="<?= base_url('uploads/certs/' . $mem['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
                                 <?php else: ?><em>N/A</em><?php endif; ?>
                             </td>
                         </tr>

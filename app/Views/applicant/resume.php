@@ -135,7 +135,7 @@
                             <td><?= esc($edu['date_started'] ?? '') ?> - <?= esc($edu['date_ended'] ?? '') ?></td>
                             <td>
                                 <?php if (!empty($edu['certificate'])): ?>
-                                <a href="<?= base_url('uploads/certificates/' . $edu['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
+                                <a href="<?= base_url('uploads/certs/' . $edu['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
                                 <?php else: ?><em>N/A</em><?php endif; ?>
                             </td>
                         </tr>
@@ -168,7 +168,7 @@
                             <td><?= esc($edu['date_started']) ?> - <?= esc($edu['date_ended']) ?></td>
                             <td>
                                 <?php if (!empty($edu['certificate'])): ?>
-                                <a href="<?= base_url('uploads/certificates/' . $edu['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
+                                <a href="<?= base_url('uploads/certs/' . $edu['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
                                 <?php else: ?><em>N/A</em><?php endif; ?>
                             </td>
                         </tr>
@@ -238,7 +238,7 @@
                             <td><?= esc($mem['joined_date'] ?? '-') ?></td>
                             <td>
                                 <?php if (!empty($mem['certificate'])): ?>
-                                    <a href="<?= base_url('uploads/memberships/' . $mem['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
+                                    <a href="<?= base_url('uploads/certs/' . $mem['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
                                 <?php else: ?><em>N/A</em><?php endif; ?>
                             </td>
                         </tr>
@@ -300,7 +300,7 @@
                             </td>
                             <td>
                                 <?php if (!empty($work['reference_file'])): ?>
-                                <a href="<?= base_url('uploads/work_experience/' . $work['reference_file']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
+                                <a href="<?= base_url('uploads/certs/' . $work['reference_file']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
                                 <?php else: ?><em>N/A</em><?php endif; ?>
                             </td>
                         </tr>

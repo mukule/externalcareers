@@ -280,7 +280,7 @@ public function resume(?string $userUuid = null)
 
     foreach ($basicEducation as &$edu) {
         $edu['certificate_url'] = !empty($edu['certificate'])
-            ? base_url('uploads/certificates/' . $edu['certificate'])
+            ? base_url('uploads/certs/' . $edu['certificate'])
             : null;
     }
 
@@ -298,7 +298,7 @@ public function resume(?string $userUuid = null)
 
     foreach ($certifications as &$cert) {
         $cert['certificate_url'] = !empty($cert['certificate_file'])
-            ? base_url('uploads/certifications/' . $cert['certificate_file'])
+            ? base_url('uploads/certs/' . $cert['certificate_file'])
             : null;
     }
 
@@ -310,7 +310,7 @@ public function resume(?string $userUuid = null)
 
     foreach ($workExperience as &$work) {
         $work['reference_url'] = !empty($work['reference_file'])
-            ? base_url('uploads/work_experience/' . $work['reference_file'])
+            ? base_url('uploads/certs/' . $work['reference_file'])
             : null;
     }
 
@@ -325,7 +325,7 @@ public function resume(?string $userUuid = null)
 
     foreach ($memberships as &$mem) {
         $mem['certificate_url'] = !empty($mem['certificate'])
-            ? base_url('uploads/memberships/' . $mem['certificate'])
+            ? base_url('uploads/' . $mem['certificate'])
             : null;
     }
 

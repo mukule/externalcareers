@@ -50,7 +50,7 @@
                                     <td><?= !empty($cert['attained_date']) ? date('M Y', strtotime($cert['attained_date'])) : 'N/A' ?></td>
                                     <td>
                                         <?php if(!empty($cert['certificate_file'])): ?>
-                                            <a href="<?= base_url('uploads/certifications/' . $cert['certificate_file']) ?>" target="_blank">File</a>
+                                            <a href="<?= base_url('uploads/certs/' . $cert['certificate_file']) ?>" target="_blank">File</a>
                                         <?php else: ?>
                                             N/A
                                         <?php endif; ?>

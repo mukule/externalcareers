@@ -11,12 +11,7 @@
                 <h4 class="card-title mb-0"><?= isset($membership) ? 'Edit Membership' : 'Add New Membership' ?></h4>
             </div>
 
-            <!-- Flash Messages -->
-            <?php if(session()->getFlashdata('error')): ?>
-                <div class="alert alert-danger">
-                    <?= is_array(session()->getFlashdata('error')) ? implode('<br>', session()->getFlashdata('error')) : session()->getFlashdata('error') ?>
-                </div>
-            <?php endif; ?>
+           
 
             <form action="<?= $action ?>" method="POST" enctype="multipart/form-data">
                 <?= csrf_field() ?>
@@ -61,7 +56,7 @@
                         <label for="certificate" class="form-label">Certificate (PDF, max 2MB)</label>
                         <input type="file" class="form-control" name="certificate" id="certificate" accept="application/pdf">
                         <?php if(isset($membership['certificate']) && $membership['certificate']): ?>
-                            <small>Current: <a href="<?= base_url('uploads/memberships/' . $membership['certificate']) ?>" target="_blank">View PDF</a></small>
+                            <small>Current: <a href="<?= base_url('uploads/certs/' . $membership['certificate']) ?>" target="_blank">View PDF</a></small>
                         <?php endif; ?>
                     </div>
                 </div>

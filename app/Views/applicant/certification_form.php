@@ -71,7 +71,7 @@
                         <label for="certificate_file" class="form-label">Certificate (PDF, max 2MB)</label>
                         <input type="file" class="form-control" name="certificate_file" id="certificate_file" accept="application/pdf">
                         <?php if(isset($certification['certificate_file']) && $certification['certificate_file']): ?>
-                            <small>Current: <a href="<?= base_url('uploads/certifications/' . $certification['certificate_file']) ?>" target="_blank">View PDF</a></small>
+                            <small>Current: <a href="<?= base_url('uploads/certs/' . $certification['certificate_file']) ?>" target="_blank">View PDF</a></small>
                         <?php endif; ?>
                     </div>
                 </div>

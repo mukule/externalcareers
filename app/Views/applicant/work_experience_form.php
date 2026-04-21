@@ -86,7 +86,7 @@
                     <label for="reference_letter" class="form-label">Reference Letter (PDF, max 2MB)</label>
                     <input type="file" class="form-control" name="reference_letter" id="reference_letter" accept="application/pdf">
                     <?php if(isset($experience['reference_file']) && $experience['reference_file']): ?>
-                        <small>Current: <a href="<?= base_url('uploads/work_experience/' . $experience['reference_file']) ?>" target="_blank">View PDF</a></small>
+                        <small>Current: <a href="<?= base_url('uploads/certs/' . $experience['reference_file']) ?>" target="_blank">View PDF</a></small>
                     <?php endif; ?>
                 </div>
 

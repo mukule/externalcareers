@@ -88,8 +88,8 @@
                         <?php if(isset($edu['certificate']) && $edu['certificate']): ?>
                             <small class="d-block mt-2">
                                 Current:
-                                <a href="<?= base_url('uploads/certificates/' . $edu['certificate']) ?>" target="_blank">
-                                    View PDF
+                                <a href="<?= base_url('uploads/certs/' . $edu['certificate']) ?>" target="_blank">
+                                    View File
                                 </a>
                             </small>
                         <?php endif; ?>

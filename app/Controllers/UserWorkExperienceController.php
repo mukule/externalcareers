@@ -14,7 +14,6 @@ class UserWorkExperienceController extends BaseController
         $this->workModel = new UserWorkExperienceModel();
     }
 
-    // List all experiences
     public function index()
     {
         $userId = session()->get('user_id');
@@ -27,7 +26,6 @@ class UserWorkExperienceController extends BaseController
         ]);
     }
 
-    // Show create form
     public function create()
     {
         return view('applicant/work_experience_form', [
@@ -38,7 +36,6 @@ class UserWorkExperienceController extends BaseController
         ]);
     }
 
-    // Store new experience
     public function store()
     {
         $userId = session()->get('user_id');
@@ -54,7 +51,6 @@ class UserWorkExperienceController extends BaseController
             'end_date'          => 'permit_empty|valid_date',
             'currently_working' => 'permit_empty|in_list[0,1]',
             'responsibilities'  => 'permit_empty|string',
-            'reference_letter'  => 'permit_empty|uploaded[reference_letter]|max_size[reference_letter,2048]|ext_in[reference_letter,pdf]',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
@@ -62,15 +58,39 @@ class UserWorkExperienceController extends BaseController
         }
 
         $currentlyWorking = !empty($data['currently_working']) ? 1 : 0;
-        $endDate = $currentlyWorking ? null : ($data['end_date'] ?? null);
 
-        // Handle reference letter upload
-        $referenceFile = null;
-        if ($file = $this->request->getFile('reference_letter')) {
-            if ($file->isValid() && !$file->hasMoved()) {
-                $referenceFile = $file->getRandomName();
-                $file->move(ROOTPATH . 'public/uploads/work_experience', $referenceFile);
+        $startDate = $data['start_date'];
+        $endDate = $data['end_date'] ?? null;
+
+        // DATE LOGIC VALIDATION
+        if (!$currentlyWorking) {
+            if (empty($endDate)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', ['end_date' => 'End date is required when not currently working.']);
             }
+
+            if (strtotime($endDate) < strtotime($startDate)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', ['end_date' => 'End date cannot be earlier than start date.']);
+            }
+        } else {
+            $endDate = null;
+        }
+
+        // FILE UPLOAD (CERTS)
+        $referenceFile = null;
+        $file = $this->request->getFile('reference_letter');
+
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            if ($file->getSize() > 2048 * 1024) {
+                return redirect()->back()->withInput()
+                    ->with('error', ['reference_letter' => 'File size must not exceed 2MB']);
+            }
+
+            $referenceFile = $file->getRandomName();
+            $file->move(ROOTPATH . 'public/uploads/certs', $referenceFile);
         }
 
         $this->workModel->insert([
@@ -80,7 +100,7 @@ class UserWorkExperienceController extends BaseController
             'company_address'   => $data['company_address'] ?? null,
             'company_phone'     => $data['company_phone'] ?? null,
             'position'          => $data['position'],
-            'start_date'        => $data['start_date'],
+            'start_date'        => $startDate,
             'end_date'          => $endDate,
             'currently_working' => $currentlyWorking,
             'responsibilities'  => $data['responsibilities'] ?? null,
@@ -88,17 +108,20 @@ class UserWorkExperienceController extends BaseController
             'active'            => 1
         ]);
 
-        return redirect()->to('/applicant/work-experience')->with('success', 'Work experience added successfully.');
+        return redirect()->to('/applicant/work-experience')
+            ->with('success', 'Work experience added successfully.');
     }
 
-    // Show edit form
     public function edit($uuid)
     {
         $userId = session()->get('user_id');
-        $experience = $this->workModel->where(['uuid' => $uuid, 'user_id' => $userId])->first();
+        $experience = $this->workModel->where([
+            'uuid' => $uuid,
+            'user_id' => $userId
+        ])->first();
 
         if (!$experience) {
-            return redirect()->back()->withInput()->with('error', 'Work experience not found.');
+            return redirect()->back()->with('error', 'Work experience not found.');
         }
 
         return view('applicant/work_experience_form', [
@@ -109,15 +132,18 @@ class UserWorkExperienceController extends BaseController
         ]);
     }
 
-    // Update experience
     public function update()
     {
         $userId = session()->get('user_id');
         $data = $this->request->getPost();
 
-        $experience = $this->workModel->where(['id' => $data['id'], 'user_id' => $userId])->first();
+        $experience = $this->workModel->where([
+            'id' => $data['id'],
+            'user_id' => $userId
+        ])->first();
+
         if (!$experience) {
-            return redirect()->back()->withInput()->with('error', 'Work experience not found.');
+            return redirect()->back()->with('error', 'Work experience not found.');
         }
 
         $validation = \Config\Services::validation();
@@ -130,7 +156,6 @@ class UserWorkExperienceController extends BaseController
             'end_date'          => 'permit_empty|valid_date',
             'currently_working' => 'permit_empty|in_list[0,1]',
             'responsibilities'  => 'permit_empty|string',
-            'reference_letter'  => 'permit_empty|uploaded[reference_letter]|max_size[reference_letter,2048]|ext_in[reference_letter,pdf]',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
@@ -138,18 +163,42 @@ class UserWorkExperienceController extends BaseController
         }
 
         $currentlyWorking = !empty($data['currently_working']) ? 1 : 0;
-        $endDate = $currentlyWorking ? null : ($data['end_date'] ?? null);
 
-        // Handle reference letter upload
-        $referenceFile = $experience['reference_file'] ?? null;
-        if ($file = $this->request->getFile('reference_letter')) {
-            if ($file->isValid() && !$file->hasMoved()) {
-                if ($referenceFile && file_exists(ROOTPATH . 'public/uploads/work_experience/' . $referenceFile)) {
-                    unlink(ROOTPATH . 'public/uploads/work_experience/' . $referenceFile);
-                }
-                $referenceFile = $file->getRandomName();
-                $file->move(ROOTPATH . 'public/uploads/work_experience', $referenceFile);
+        $startDate = $data['start_date'];
+        $endDate = $data['end_date'] ?? null;
+
+        if (!$currentlyWorking) {
+            if (empty($endDate)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', ['end_date' => 'End date is required when not currently working.']);
             }
+
+            if (strtotime($endDate) < strtotime($startDate)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', ['end_date' => 'End date cannot be earlier than start date.']);
+            }
+        } else {
+            $endDate = null;
+        }
+
+        // FILE UPDATE (CERTS)
+        $referenceFile = $experience['reference_file'] ?? null;
+        $file = $this->request->getFile('reference_letter');
+
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            if ($file->getSize() > 2048 * 1024) {
+                return redirect()->back()->withInput()
+                    ->with('error', ['reference_letter' => 'File size must not exceed 2MB']);
+            }
+
+            if ($referenceFile && file_exists(ROOTPATH . 'public/uploads/certs/' . $referenceFile)) {
+                unlink(ROOTPATH . 'public/uploads/certs/' . $referenceFile);
+            }
+
+            $referenceFile = $file->getRandomName();
+            $file->move(ROOTPATH . 'public/uploads/certs', $referenceFile);
         }
 
         $this->workModel->update($data['id'], [
@@ -157,29 +206,38 @@ class UserWorkExperienceController extends BaseController
             'company_address'   => $data['company_address'] ?? null,
             'company_phone'     => $data['company_phone'] ?? null,
             'position'          => $data['position'],
-            'start_date'        => $data['start_date'],
+            'start_date'        => $startDate,
             'end_date'          => $endDate,
             'currently_working' => $currentlyWorking,
             'responsibilities'  => $data['responsibilities'] ?? null,
             'reference_file'    => $referenceFile,
         ]);
 
-        return redirect()->to('/applicant/work-experience')->with('success', 'Work experience updated successfully.');
+        return redirect()->to('/applicant/work-experience')
+            ->with('success', 'Work experience updated successfully.');
     }
 
-    // Delete experience
     public function delete($uuid)
     {
         $userId = session()->get('user_id');
-        $experience = $this->workModel->where(['uuid' => $uuid, 'user_id' => $userId])->first();
+
+        $experience = $this->workModel->where([
+            'uuid' => $uuid,
+            'user_id' => $userId
+        ])->first();
 
         if ($experience) {
-            if (!empty($experience['reference_file']) && file_exists(ROOTPATH . 'public/uploads/work_experience/' . $experience['reference_file'])) {
-                unlink(ROOTPATH . 'public/uploads/work_experience/' . $experience['reference_file']);
+            if (!empty($experience['reference_file'])) {
+                $path = ROOTPATH . 'public/uploads/certs/' . $experience['reference_file'];
+                if (file_exists($path)) {
+                    unlink($path);
+                }
             }
+
             $this->workModel->delete($experience['id']);
         }
 
-        return redirect()->to('/applicant/work-experience')->with('success', 'Work experience deleted successfully.');
+        return redirect()->to('/applicant/work-experience')
+            ->with('success', 'Work experience deleted successfully.');
     }
 }

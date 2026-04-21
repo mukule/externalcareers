@@ -53,56 +53,114 @@ class UserBasicEducationController extends BaseController
     /**
      * Store record
      */
+ 
     public function store()
-    {
-        $userId = session()->get('user_id');
-        $data   = $this->request->getPost();
+{
+    $userId = session()->get('user_id');
+    $data   = $this->request->getPost();
 
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'school_name'    => 'required|string|max_length[255]',
-            'certification'  => 'required|string|max_length[100]',
-            'grade_attained' => 'permit_empty|string|max_length[50]',
-            'date_started'   => 'permit_empty|valid_date[Y-m-d]',
-            'date_ended'     => 'permit_empty|valid_date[Y-m-d]',
-            // ✅ FIXED: removed uploaded[]
-            'certificate'    => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
-        ]);
+    $validation = \Config\Services::validation();
+    $validation->setRules([
+        'school_name'    => 'required|string|max_length[255]',
+        'certification'  => 'required|string|max_length[100]',
+        'grade_attained' => 'permit_empty|string|max_length[50]',
+        'date_started'   => 'permit_empty|valid_date[Y-m-d]',
+        'date_ended'     => 'permit_empty|valid_date[Y-m-d]',
+        'certificate'    => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
+    ]);
 
-        if (!$validation->withRequest($this->request)->run()) {
-            return redirect()->back()->withInput()->with('error', $validation->getErrors());
+    if (!$validation->withRequest($this->request)->run()) {
+        return redirect()->back()->withInput()->with('error', $validation->getErrors());
+    }
+
+    // =========================
+    // DATE VALIDATION
+    // =========================
+    $start = $data['date_started'] ?? null;
+    $end   = $data['date_ended'] ?? null;
+    $today = date('Y-m-d');
+
+    $errors = [];
+
+    if ($start && $end) {
+        if ($end < $start) {
+            $errors['date_ended'] = 'End date cannot be earlier than start date.';
         }
+    }
 
-        $certificatePath = null;
+    if ($end && $end > $today) {
+        $errors['date_ended'] = 'End date cannot be in the future.';
+    }
 
-        try {
-            $file = $this->request->getFile('certificate');
+    if ($start && $start > $today) {
+        $errors['date_started'] = 'Start date cannot be in the future.';
+    }
 
-            // ✅ Only process if file exists
-            if ($file && $file->getError() !== 4) {
-                if ($file->isValid() && !$file->hasMoved()) {
-                    $certificatePath = $file->getRandomName();
-                    $file->move(ROOTPATH . 'public/uploads/certificates', $certificatePath);
-                }
+    if (!empty($errors)) {
+        return redirect()->back()->withInput()->with('error', $errors);
+    }
+
+    // =========================
+    // FILE HANDLING
+    // =========================
+    $certificatePath = null;
+
+    try {
+        $file = $this->request->getFile('certificate');
+
+        if ($file && $file->getError() !== 4) {
+
+            if (!$file->isValid()) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Invalid file upload.'
+                ]);
             }
 
-            $this->educationModel->insert([
-                'user_id'        => $userId,
-                'school_name'    => $data['school_name'],
-                'certification'  => $data['certification'],
-                'grade_attained' => $data['grade_attained'] ?? null,
-                'date_started'   => $data['date_started'] ?? null,
-                'date_ended'     => $data['date_ended'] ?? null,
-                'certificate'    => $certificatePath,
-                'active'         => 1,
-            ]);
+            // Extra safety: enforce 2MB manually
+            if ($file->getSize() > (2 * 1024 * 1024)) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'File size must not exceed 2MB.'
+                ]);
+            }
 
-        } catch (\Exception $e) {
-            return redirect()->back()->withInput()->with('error', $e->getMessage());
+            // Optional: MIME check (stronger security)
+            if ($file->getMimeType() !== 'application/pdf') {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Only PDF files are allowed.'
+                ]);
+            }
+
+            // Ensure directory exists
+            $uploadPath = ROOTPATH . 'public/uploads/certs/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            $certificatePath = $file->getRandomName();
+            $file->move($uploadPath, $certificatePath);
         }
 
-        return redirect()->to('/applicant/basic-education')->with('success', 'Basic education added successfully.');
+        // =========================
+        // SAVE
+        // =========================
+        $this->educationModel->insert([
+            'user_id'        => $userId,
+            'school_name'    => $data['school_name'],
+            'certification'  => $data['certification'],
+            'grade_attained' => $data['grade_attained'] ?? null,
+            'date_started'   => $start,
+            'date_ended'     => $end,
+            'certificate'    => $certificatePath,
+            'active'         => 1,
+        ]);
+
+    } catch (\Exception $e) {
+        return redirect()->back()->withInput()->with('error', $e->getMessage());
     }
+
+    return redirect()->to('/applicant/basic-education')
+        ->with('success', 'Basic education added successfully.');
+}
 
     /**
      * Edit form
@@ -136,95 +194,150 @@ class UserBasicEducationController extends BaseController
     /**
      * Update record
      */
+   
     public function update()
-    {
-        $userId = session()->get('user_id');
-        $data   = $this->request->getPost();
+{
+    $userId = session()->get('user_id');
+    $data   = $this->request->getPost();
 
-        $record = $this->educationModel
-            ->where(['id' => $data['id'], 'user_id' => $userId])
-            ->first();
+    $record = $this->educationModel
+        ->where(['id' => $data['id'], 'user_id' => $userId])
+        ->first();
 
-        if (!$record) {
-            return redirect()->back()->withInput()->with('error', 'Education record not found.');
-        }
+    if (!$record) {
+        return redirect()->back()->withInput()->with('error', 'Education record not found.');
+    }
 
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'school_name'    => 'required|string|max_length[255]',
-            'certification'  => 'required|string|max_length[100]',
-            'grade_attained' => 'permit_empty|string|max_length[50]',
-            'date_started'   => 'permit_empty|valid_date[Y-m-d]',
-            'date_ended'     => 'permit_empty|valid_date[Y-m-d]',
-            // ✅ FIXED
-            'certificate'    => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
-        ]);
+    $validation = \Config\Services::validation();
+    $validation->setRules([
+        'school_name'    => 'required|string|max_length[255]',
+        'certification'  => 'required|string|max_length[100]',
+        'grade_attained' => 'permit_empty|string|max_length[50]',
+        'date_started'   => 'permit_empty|valid_date[Y-m-d]',
+        'date_ended'     => 'permit_empty|valid_date[Y-m-d]',
+        'certificate'    => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
+    ]);
 
-        if (!$validation->withRequest($this->request)->run()) {
-            return redirect()->back()->withInput()->with('error', $validation->getErrors());
-        }
+    if (!$validation->withRequest($this->request)->run()) {
+        return redirect()->back()->withInput()->with('error', $validation->getErrors());
+    }
 
-        try {
-            $file = $this->request->getFile('certificate');
-            $certificateName = $record['certificate'];
+    // =========================
+    // DATE VALIDATION
+    // =========================
+    $start = $data['date_started'] ?? null;
+    $end   = $data['date_ended'] ?? null;
+    $today = date('Y-m-d');
 
-            if ($file && $file->getError() !== 4) {
-                if ($file->isValid() && !$file->hasMoved()) {
+    $errors = [];
 
-                    // delete old file
-                    if (!empty($record['certificate']) &&
-                        file_exists(ROOTPATH . 'public/uploads/certificates/' . $record['certificate'])) {
-                        unlink(ROOTPATH . 'public/uploads/certificates/' . $record['certificate']);
-                    }
+    if ($start && $end && $end < $start) {
+        $errors['date_ended'] = 'End date cannot be earlier than start date.';
+    }
 
-                    $certificateName = $file->getRandomName();
-                    $file->move(ROOTPATH . 'public/uploads/certificates', $certificateName);
+    if ($end && $end > $today) {
+        $errors['date_ended'] = 'End date cannot be in the future.';
+    }
+
+    if ($start && $start > $today) {
+        $errors['date_started'] = 'Start date cannot be in the future.';
+    }
+
+    if (!empty($errors)) {
+        return redirect()->back()->withInput()->with('error', $errors);
+    }
+
+    try {
+        $file = $this->request->getFile('certificate');
+        $certificateName = $record['certificate'];
+
+        if ($file && $file->getError() !== 4) {
+
+            if (!$file->isValid()) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Invalid file upload.'
+                ]);
+            }
+
+            if ($file->getSize() > (2 * 1024 * 1024)) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'File size must not exceed 2MB.'
+                ]);
+            }
+
+            if ($file->getMimeType() !== 'application/pdf') {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Only PDF files are allowed.'
+                ]);
+            }
+
+            $uploadPath = ROOTPATH . 'public/uploads/certs/';
+
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            // delete old file
+            if (!empty($record['certificate'])) {
+                $oldPath = $uploadPath . $record['certificate'];
+                if (is_file($oldPath)) {
+                    unlink($oldPath);
                 }
             }
 
-            $this->educationModel->update($data['id'], [
-                'school_name'    => $data['school_name'],
-                'certification'  => $data['certification'],
-                'grade_attained' => $data['grade_attained'] ?? null,
-                'date_started'   => $data['date_started'] ?? null,
-                'date_ended'     => $data['date_ended'] ?? null,
-                'certificate'    => $certificateName,
-            ]);
-
-        } catch (\Exception $e) {
-            return redirect()->back()->withInput()->with('error', $e->getMessage());
+            $certificateName = $file->getRandomName();
+            $file->move($uploadPath, $certificateName);
         }
 
-        return redirect()->to('/applicant/basic-education')->with('success', 'Education updated successfully.');
+        $this->educationModel->update($data['id'], [
+            'school_name'    => $data['school_name'],
+            'certification'  => $data['certification'],
+            'grade_attained' => $data['grade_attained'] ?? null,
+            'date_started'   => $start,
+            'date_ended'     => $end,
+            'certificate'    => $certificateName,
+        ]);
+
+    } catch (\Exception $e) {
+        return redirect()->back()->withInput()->with('error', $e->getMessage());
     }
 
-    /**
-     * Delete record
-     */
-    public function delete($uuid)
-    {
-        $userId = session()->get('user_id');
+    return redirect()->to('/applicant/basic-education')
+        ->with('success', 'Education updated successfully.');
+}
 
-        $record = $this->educationModel
-            ->where(['uuid' => $uuid, 'user_id' => $userId])
-            ->first();
+public function delete($uuid)
+{
+    $userId = session()->get('user_id');
 
-        if (!$record) {
-            return redirect()->back()->with('error', 'Education record not found.');
-        }
+    $record = $this->educationModel
+        ->where(['uuid' => $uuid, 'user_id' => $userId])
+        ->first();
 
-        try {
-            if (!empty($record['certificate']) &&
-                file_exists(ROOTPATH . 'public/uploads/certificates/' . $record['certificate'])) {
-                unlink(ROOTPATH . 'public/uploads/certificates/' . $record['certificate']);
+    if (!$record) {
+        return redirect()->back()->with('error', 'Education record not found.');
+    }
+
+    try {
+        $uploadPath = ROOTPATH . 'public/uploads/certs/';
+
+        if (!empty($record['certificate'])) {
+            $filePath = $uploadPath . $record['certificate'];
+
+            if (is_file($filePath)) {
+                unlink($filePath);
             }
-
-            $this->educationModel->delete($record['id']);
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
         }
 
-        return redirect()->to('/applicant/basic-education')->with('success', 'Education record deleted successfully.');
+        $this->educationModel->delete($record['id']);
+
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', $e->getMessage());
     }
+
+    return redirect()->to('/applicant/basic-education')
+        ->with('success', 'Education record deleted successfully.');
+}
+
+
 }
