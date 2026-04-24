@@ -162,7 +162,7 @@ if (!function_exists('get_job_application_requirements')) {
 
         $jobModel            = new JobModel();
         $certModel           = new UserCertificationModel();
-        $membershipModel     = new UserMembershipModel(); // Added membership model
+        $membershipModel     = new UserMembershipModel(); 
         $educationModel      = new UserEducationModel();
         $workExperienceModel = new UserWorkExperienceModel();
         $refereeModel        = new UserRefereesModel();
@@ -202,10 +202,10 @@ if (!function_exists('get_job_application_requirements')) {
         //     'met'  => $userIdExists,
         // ];
 
-        $requirements[] = [
-            'name' => 'Education Details',
-            'met'  => $userIdExists && $educationModel->where('user_id', $userId)->countAllResults() > 0,
-        ];
+        // $requirements[] = [
+        //     'name' => 'Education Details',
+        //     'met'  => $userIdExists && $educationModel->where('user_id', $userId)->countAllResults() > 0,
+        // ];
 
         $requirements[] = [
             'name' => 'Latest Work Experience',
