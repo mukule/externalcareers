@@ -35,7 +35,7 @@ class JobsController extends BaseController
         'certification_required'    => 'permit_empty|in_list[0,1]',
         'membership_required'       => 'permit_empty|in_list[0,1]',
         'higher_education_required' => 'permit_empty|in_list[0,1]',
-        'fields_of_study'           => 'required|is_array'
+        'fields_of_study'           => 'permit_empty|is_array'
     ];
 
     public function __construct()
@@ -169,6 +169,7 @@ public function toggle($id)
         ]);
     }
 
+  
     public function store()
 {
     $data = $this->request->getPost();
@@ -188,14 +189,14 @@ public function toggle($id)
     $data['active']                    = 0;
     $data['created_by']                = session()->get('user_id');
 
+    
+    // $fieldIds = $data['fields_of_study'] ?? [];
+    // if (!empty($fieldIds)) {
+    //     $this->jobSpeciality->assignFields($jobId, $fieldIds);
+    // }
+
     // Insert job
     $jobId = $this->jobModel->insert($data);
-
-    // Assign fields of study
-    $fieldIds = $data['fields_of_study'] ?? [];
-    if (!empty($fieldIds)) {
-        $this->jobSpeciality->assignFields($jobId, $fieldIds);
-    }
 
     // 🔹 Admin log
     try {
@@ -209,6 +210,7 @@ public function toggle($id)
 
     return redirect()->to('admin/jobs')->with('success', 'Job created successfully.');
 }
+
 
 
     /** Show edit form */
@@ -263,8 +265,8 @@ public function toggle($id)
     $this->jobModel->update($job['id'], $data);
 
     // Update fields of study
-    $fieldIds = $data['fields_of_study'] ?? [];
-    $this->jobSpeciality->assignFields($job['id'], $fieldIds);
+    // $fieldIds = $data['fields_of_study'] ?? [];
+    // $this->jobSpeciality->assignFields($job['id'], $fieldIds);
 
     // 🔹 Log admin activity
     try {

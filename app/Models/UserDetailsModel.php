@@ -36,9 +36,7 @@ class UserDetailsModel extends Model
         return $data;
     }
 
-    /**
-     * ⚡ FAST: Check completion using EXISTS (no row fetch)
-     */
+    
     public function isComplete(int $userId): bool
     {
         return $this->where('user_id', $userId)
@@ -46,9 +44,7 @@ class UserDetailsModel extends Model
                     ->countAllResults() > 0;
     }
 
-    /**
-     * ⚡ FAST: Get user details only (no joins)
-     */
+   
     public function getByUserId(int $userId): ?array
     {
         return $this->select('id,user_id,completed,active')
@@ -56,10 +52,7 @@ class UserDetailsModel extends Model
                     ->first();
     }
 
-    /**
-     * 🚀 KEYSET PAGINATION (NO OFFSET)
-     * Use lastId instead of page number
-     */
+  
     public function getUsersFast(int $limit = 20, ?int $lastId = null): array
     {
         $builder = $this->db->table('users u')
@@ -76,7 +69,7 @@ class UserDetailsModel extends Model
             ->limit($limit);
 
         if ($lastId) {
-            $builder->where('u.id <', $lastId); // keyset pagination
+            $builder->where('u.id <', $lastId); 
         }
 
         $data = $builder->get()->getResultArray();
@@ -87,10 +80,7 @@ class UserDetailsModel extends Model
         ];
     }
 
-    /**
-     * ⚡ LIGHTWEIGHT LIST (no joins at all)
-     * Use this for admin tables when joins are not needed
-     */
+   
     public function getUsersLight(int $limit = 20, int $offset = 0): array
     {
         return $this->db->table('users')
@@ -101,9 +91,7 @@ class UserDetailsModel extends Model
             ->getResultArray();
     }
 
-    /**
-     * ⚡ OPTIMIZED RESUME (minimal joins)
-     */
+   
     public function getResumeDetails(int $userId): array
     {
         $row = $this->db->table('user_details ud')
@@ -128,4 +116,39 @@ class UserDetailsModel extends Model
 
         return $row ?? [];
     }
+
+
+    public function isProfileCompleteStrict(int $userId): bool
+{
+    $requiredFields = [
+        'national_id',
+        'gender_id',
+        'dob',
+        'phone',
+        'ethnicity_id',
+        'county_of_origin_id',
+        'county_of_residence_id',
+        'country_of_birth_id',
+        'country_of_residence_id',
+        
+        'highest_level_of_study_id'
+    ];
+
+    $user = $this->where('user_id', $userId)->first();
+
+    if (!$user) {
+        return false;
+    }
+
+    foreach ($requiredFields as $field) {
+        if (empty($user[$field])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+
 }

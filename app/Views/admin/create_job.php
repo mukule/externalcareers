@@ -22,7 +22,7 @@
                     <input type="hidden" name="id" value="<?= esc($job['id']) ?>">
                 <?php endif; ?>
 
-                <div class="row g-4">
+                <div class="row g-2">
 
                     <!-- Job Title -->
                     <div class="col-md-4 text-start d-flex flex-column justify-content-center">
@@ -189,26 +189,7 @@
                     </div>
 
                     <!-- Fields of Study -->
-                    <div class="col-md-4 text-start d-flex flex-column justify-content-center">
-                        <label class="form-label fw-semibold">Fields of Study <span class="text-danger">*</span></label>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="border p-3 rounded">
-                            <?php foreach ($fieldsOfStudy as $field): ?>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" 
-                                        type="checkbox" 
-                                        name="fields_of_study[]" 
-                                        value="<?= esc($field['id']) ?>"
-                                        id="field_<?= esc($field['id']) ?>"
-                                        <?= isset($jobFields) && in_array($field['id'], $jobFields) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="field_<?= esc($field['id']) ?>">
-                                        <?= esc($field['name']) ?>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
+                   
 
                 </div>
                

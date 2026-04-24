@@ -10,6 +10,7 @@ use App\Models\UserWorkExperienceModel;
 use App\Models\UserCertificationModel;
 use App\Models\UserRefereesModel;
 use App\Models\UserMembershipModel;
+use App\Models\UserDetailsModel;
 
 if (!function_exists('calculate_user_work_experience')) {
 
@@ -152,7 +153,6 @@ if (!function_exists('get_eligible_jobs_for_user')) {
 }
 
 
-
 if (!function_exists('get_job_application_requirements')) {
 
     function get_job_application_requirements(int $jobId): array
@@ -166,6 +166,7 @@ if (!function_exists('get_job_application_requirements')) {
         $educationModel      = new UserEducationModel();
         $workExperienceModel = new UserWorkExperienceModel();
         $refereeModel        = new UserRefereesModel();
+        $userDetailsModel    = new UserDetailsModel();
 
         $job = $jobModel->find($jobId);
 
@@ -177,47 +178,55 @@ if (!function_exists('get_job_application_requirements')) {
             ];
         }
 
-        $jobType      = strtolower($job['job_type_name'] ?? '');
-        $isInternship = in_array($jobType, ['internship', 'attachment']);
-
-        $requirements = [];
+        $jobType = strtolower($job['job_type_name'] ?? '');
+        $isInternal = ($jobType === 'internal');
         $userIdExists = !empty($userId);
 
-        // Internship / Attachment only require authentication
-        // if ($isInternship) {
-        //     $requirements[] = [
-        //         'name' => 'Authentication',
-        //         'met'  => $userIdExists,
-        //     ];
+        $requirements = [];
 
-        //     return [
-        //         'success' => true,
-        //         'requirements' => $requirements
-        //     ];
-        // }
+        // ==============================
+        // PROFILE CHECK (ONLY NON-INTERNAL)
+        // ==============================
+        if (!$isInternal) {
 
-        // Regular job requirements
-        // $requirements[] = [
-        //     'name' => 'Authentication',
-        //     'met'  => $userIdExists,
-        // ];
+            $profileComplete = $userIdExists 
+                ? $userDetailsModel->isProfileCompleteStrict($userId)
+                : false;
 
-        // $requirements[] = [
-        //     'name' => 'Education Details',
-        //     'met'  => $userIdExists && $educationModel->where('user_id', $userId)->countAllResults() > 0,
-        // ];
+            $requirements[] = [
+                'name' => 'Bio Data',
+                'met'  => $profileComplete,
+            ];
+        }
 
+        // Internship / attachment shortcut
+        $isInternship = in_array($jobType, ['internship', 'attachment']);
+
+        if ($isInternship) {
+            $requirements[] = [
+                'name' => 'Authentication',
+                'met'  => $userIdExists,
+            ];
+
+            return [
+                'success' => true,
+                'requirements' => $requirements
+            ];
+        }
+
+        // Work experience
         $requirements[] = [
             'name' => 'Latest Work Experience',
             'met'  => $userIdExists && $workExperienceModel->where('user_id', $userId)->countAllResults() > 0,
         ];
 
+        // Referees
         $requirements[] = [
             'name' => 'At least 3 referees',
             'met'  => $userIdExists && $refereeModel->where('user_id', $userId)->countAllResults() >= 3,
         ];
 
-        // Certification check (only if job requires it)
+        // Certification
         if (!empty($job['certification_required'])) {
             $requirements[] = [
                 'name' => 'Certification Required',
@@ -225,7 +234,7 @@ if (!function_exists('get_job_application_requirements')) {
             ];
         }
 
-        // Membership check (only if job requires it)
+        // Membership
         if (!empty($job['membership_required'])) {
             $requirements[] = [
                 'name' => 'Membership Required',

@@ -58,30 +58,21 @@
                 <p>No additional requirements</p>
             <?php endif; ?>
 
-            <h5>Fields of Study / Disciplines</h5>
-            <?php if (!empty($job['fields_of_study'])): ?>
-                <ul>
-                    <?php foreach ($job['fields_of_study'] as $field): ?>
-                        <li><?= esc($field['name'] ?? 'N/A') ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php else: ?>
-                <p>No specific disciplines required</p>
-            <?php endif; ?>
+           
 
             <hr>
 
             <div class="d-flex gap-2">
                 <!-- Toggle Active / Inactive -->
                 <?php if ($job['active'] == 1): ?>
-                    <a href="<?= base_url('admin/jobs/toggle/' . $job['uuid']) ?>"
+                    <a href="<?= base_url('admin/jobs/toggle/' . $job['id']) ?>"
                        class="btn btn-outline-primary"
                        data-bs-toggle="tooltip" title="Unpublish Job"
                        onclick="return confirm('Unpublish this job?');">
                         <i class="fas fa-eye-slash"></i> Unpublish
                     </a>
                 <?php else: ?>
-                    <a href="<?= base_url('admin/jobs/toggle/' . $job['uuid']) ?>"
+                    <a href="<?= base_url('admin/jobs/toggle/' . $job['id']) ?>"
                        class="btn btn-outline-secondary"
                        data-bs-toggle="tooltip" title="Publish Job"
                        onclick="return confirm('Publish this job?');">

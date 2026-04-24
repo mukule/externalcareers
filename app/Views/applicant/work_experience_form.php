@@ -148,9 +148,7 @@ if (!empty($experience['end_date'])) {
 
                     <label class="form-label">
                         Reference Letter (PDF, max 1MB)
-                        <?php if(!isset($experience)): ?>
-                            <span class="text-danger">*</span>
-                        <?php endif; ?>
+                       
                     </label>
 
                     <input type="file"
@@ -158,7 +156,7 @@ if (!empty($experience['end_date'])) {
                            name="reference_letter"
                            id="reference_letter"
                            accept="application/pdf"
-                           <?= !isset($experience) ? 'required' : '' ?>>
+                          >
 
                     <small class="text-muted d-block mt-1">
                         PDF only. Maximum size: 1MB.

@@ -11,11 +11,7 @@
                     <li class="breadcrumb-item">
                         <a href="<?= base_url('/') ?>">Home</a>
                     </li>
-                    <li class="breadcrumb-item">
-                        <a href="<?= base_url('job_type/' . ($job['job_type_uuid'] ?? '')) ?>">
-                            <?= esc($job['job_type_name'] ?? 'Jobs') ?>
-                        </a>
-                    </li>
+                   
                     <li class="breadcrumb-item active" aria-current="page">
                         <?= esc($job['name']) ?> - <?= esc($job['reference_no']) ?>
                     </li>
