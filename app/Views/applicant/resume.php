@@ -66,14 +66,13 @@
                     <div class="col-md-6"><strong>Date of Birth:</strong> <?= esc($details['dob'] ?? '') ?></div>
                     <div class="col-md-6"><strong>Phone:</strong> <?= esc($details['phone'] ?? '') ?></div>
                     <div class="col-md-6"><strong>Ethnicity:</strong> <?= esc($details['ethnicity_name'] ?? '') ?></div>
-                    <div class="col-md-6"><strong>Marital Status:</strong> <?= esc($details['marital_status_name'] ?? 'N/A') ?></div>
                     <div class="col-md-6"><strong>Country of Birth:</strong> <?= esc($details['country_of_birth_name'] ?? '') ?></div>
                     <div class="col-md-6"><strong>Country of Residence:</strong> <?= esc($details['country_of_residence_name'] ?? '') ?></div>
-                    <div class="col-md-6"><strong>County of Origin:</strong> <?= esc($details['county_of_origin_name'] ?? '') ?></div>
-                    <div class="col-md-6"><strong>County of Residence:</strong> <?= esc($details['county_of_residence_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Permanent Address:</strong> <?= esc($details['county_of_origin_name'] ?? '') ?></div>
+                    <div class="col-md-6"><strong>Temporary Address:</strong> <?= esc($details['county_of_residence_name'] ?? '') ?></div>
                     <div class="col-md-6"><strong>Disability:</strong> <?= ($details['disability_status'] ?? 0) == 1 ? 'Yes' : 'No' ?></div>
                     <?php if (($details['disability_status'] ?? 0) == 1): ?>
-                        <div class="col-md-6"><strong>Disability Number:</strong> <?= esc($details['disability_number'] ?? '') ?></div>
+                        <div class="col-md-6"><strong>NCPWD No.:</strong> <?= esc($details['disability_number'] ?? '') ?></div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -89,9 +88,7 @@
                     <div class="col-md-6">
                         <strong>Highest Education Level:</strong> <?= esc($details['highest_edu_level'] ?? 'N/A') ?>
                     </div>
-                    <div class="col-md-6">
-                        <strong>Specialization:</strong> <?= esc($details['study_field'] ?? 'N/A') ?>
-                    </div>
+                    
                 </div>
             </div>
         </div>
@@ -132,7 +129,11 @@
                             <td><?= esc($edu['school_name']) ?></td>
                             <td><?= esc($edu['certification'] ?? '') ?></td>
                             <td><?= esc($edu['grade_attained'] ?? '') ?></td>
-                            <td><?= esc($edu['date_started'] ?? '') ?> - <?= esc($edu['date_ended'] ?? '') ?></td>
+                           <td>
+                                <?= !empty($edu['date_started']) ? date('Y', strtotime($edu['date_started'])) : '' ?>
+                                -
+                                <?= !empty($edu['date_ended']) ? date('Y', strtotime($edu['date_ended'])) : 'Present' ?>
+                            </td>
                             <td>
                                 <?php if (!empty($edu['certificate'])): ?>
                                 <a href="<?= base_url('uploads/certs/' . $edu['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>
@@ -165,7 +166,11 @@
                             <td><?= esc($edu['institution_name']) ?></td>
                             <td><?= esc($edu['level_name']) ?></td>
                             <td><?= esc($edu['course_name']) ?></td>
-                            <td><?= esc($edu['date_started']) ?> - <?= esc($edu['date_ended']) ?></td>
+                           <td>
+                                <?= !empty($edu['date_started']) ? date('Y', strtotime($edu['date_started'])) : '' ?>
+                                -
+                                <?= !empty($edu['date_ended']) ? date('Y', strtotime($edu['date_ended'])) : 'Present' ?>
+                            </td>
                             <td>
                                 <?php if (!empty($edu['certificate'])): ?>
                                 <a href="<?= base_url('uploads/certs/' . $edu['certificate']) ?>" target="_blank" class="btn btn-sm btn-primary">View</a>

@@ -54,7 +54,7 @@ class UserBasicEducationController extends BaseController
      * Store record
      */
  
-    public function store()
+   public function store()
 {
     $userId = session()->get('user_id');
     $data   = $this->request->getPost();
@@ -64,9 +64,9 @@ class UserBasicEducationController extends BaseController
         'school_name'    => 'required|string|max_length[255]',
         'certification'  => 'required|string|max_length[100]',
         'grade_attained' => 'permit_empty|string|max_length[50]',
-        'date_started'   => 'permit_empty|valid_date[Y-m-d]',
-        'date_ended'     => 'permit_empty|valid_date[Y-m-d]',
-        'certificate'    => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
+        'date_started'   => 'permit_empty|numeric',
+        'date_ended'     => 'permit_empty|string|max_length[10]',
+        'certificate'    => 'permit_empty|max_size[certificate,1024]|ext_in[certificate,pdf]',
     ]);
 
     if (!$validation->withRequest($this->request)->run()) {
@@ -74,26 +74,26 @@ class UserBasicEducationController extends BaseController
     }
 
     // =========================
-    // DATE VALIDATION
+    // YEAR VALIDATION
     // =========================
     $start = $data['date_started'] ?? null;
     $end   = $data['date_ended'] ?? null;
-    $today = date('Y-m-d');
+    $currentYear = (int) date('Y');
 
     $errors = [];
 
-    if ($start && $end) {
-        if ($end < $start) {
-            $errors['date_ended'] = 'End date cannot be earlier than start date.';
+    if ($start && $end && $end !== 'present') {
+        if ((int)$end < (int)$start) {
+            $errors['date_ended'] = 'End year cannot be earlier than start year.';
         }
     }
 
-    if ($end && $end > $today) {
-        $errors['date_ended'] = 'End date cannot be in the future.';
+    if ($start && (int)$start > $currentYear) {
+        $errors['date_started'] = 'Start year cannot be in the future.';
     }
 
-    if ($start && $start > $today) {
-        $errors['date_started'] = 'Start date cannot be in the future.';
+    if ($end && $end !== 'present' && (int)$end > $currentYear) {
+        $errors['date_ended'] = 'End year cannot be in the future.';
     }
 
     if (!empty($errors)) {
@@ -116,21 +116,18 @@ class UserBasicEducationController extends BaseController
                 ]);
             }
 
-            // Extra safety: enforce 2MB manually
-            if ($file->getSize() > (2 * 1024 * 1024)) {
+            if ($file->getSize() > (1 * 1024 * 1024)) {
                 return redirect()->back()->withInput()->with('error', [
-                    'certificate' => 'File size must not exceed 2MB.'
+                    'certificate' => 'File size must not exceed 1MB.'
                 ]);
             }
 
-            // Optional: MIME check (stronger security)
             if ($file->getMimeType() !== 'application/pdf') {
                 return redirect()->back()->withInput()->with('error', [
                     'certificate' => 'Only PDF files are allowed.'
                 ]);
             }
 
-            // Ensure directory exists
             $uploadPath = ROOTPATH . 'public/uploads/certs/';
             if (!is_dir($uploadPath)) {
                 mkdir($uploadPath, 0777, true);
@@ -141,15 +138,15 @@ class UserBasicEducationController extends BaseController
         }
 
         // =========================
-        // SAVE
+        // SAVE (YEAR → DATE conversion)
         // =========================
         $this->educationModel->insert([
             'user_id'        => $userId,
             'school_name'    => $data['school_name'],
             'certification'  => $data['certification'],
             'grade_attained' => $data['grade_attained'] ?? null,
-            'date_started'   => $start,
-            'date_ended'     => $end,
+            'date_started'   => $start ? $start . '-01-01' : null,
+            'date_ended'     => ($end && $end !== 'present') ? $end . '-12-31' : null,
             'certificate'    => $certificatePath,
             'active'         => 1,
         ]);
@@ -162,38 +159,63 @@ class UserBasicEducationController extends BaseController
         ->with('success', 'Basic education added successfully.');
 }
 
+
+
     /**
      * Edit form
      */
+   
+  
     public function edit($uuid)
-    {
-        $userId = session()->get('user_id');
+{
+    $userId = session()->get('user_id');
 
-        $record = $this->educationModel
-            ->where(['uuid' => $uuid, 'user_id' => $userId])
-            ->first();
+    $record = $this->educationModel
+        ->where(['uuid' => $uuid, 'user_id' => $userId])
+        ->first();
 
-        if (!$record) {
-            return redirect()->back()->with('error', 'Education record not found.');
-        }
-
-        return view('applicant/basic_education_form', [
-            'title'          => 'Edit Basic Education',
-            'action'         => base_url('applicant/basic-education/update'),
-            'edu'            => $record,
-             'currentStep' => 3,
-            'levels'         => $this->levelModel->where('active', 1)->orderBy('index', 'ASC')->findAll(),
-            'certifications' => [
-                'KCPE' => 'Kenya Certificate of Primary Education (KCPE)',
-                'KCSE' => 'Kenya Certificate of Secondary Education (KCSE)',
-            ],
-            'grades' => ['A','A-','B+','B','B-','C+','C','C-','D+','D','D-','E'],
-        ]);
+    if (!$record) {
+        return redirect()->back()->with('error', 'Education record not found.');
     }
+
+    // =========================
+    // EXTRACT YEAR FROM DATE
+    // =========================
+    if (!empty($record['date_started'])) {
+        $record['date_started'] = date('Y', strtotime($record['date_started']));
+    }
+
+    if (!empty($record['date_ended'])) {
+        $record['date_ended'] = date('Y', strtotime($record['date_ended']));
+    }
+
+    // Optional: if null or future logic like "present"
+    if (empty($record['date_ended'])) {
+        $record['date_ended'] = 'present';
+    }
+
+    return view('applicant/basic_education_form', [
+        'title'          => 'Edit Basic Education',
+        'action'         => base_url('applicant/basic-education/update'),
+        'edu'            => $record,
+        'currentStep'    => 3,
+        'levels'         => $this->levelModel->where('active', 1)
+                              ->orderBy('index', 'ASC')
+                              ->findAll(),
+        'certifications' => [
+            'KCPE' => 'Kenya Certificate of Primary Education (KCPE)',
+            'KCSE' => 'Kenya Certificate of Secondary Education (KCSE)',
+        ],
+        'grades' => ['A','A-','B+','B','B-','C+','C','C-','D+','D','D-','E'],
+    ]);
+}
+
+
 
     /**
      * Update record
      */
+   
    
     public function update()
 {
@@ -213,9 +235,9 @@ class UserBasicEducationController extends BaseController
         'school_name'    => 'required|string|max_length[255]',
         'certification'  => 'required|string|max_length[100]',
         'grade_attained' => 'permit_empty|string|max_length[50]',
-        'date_started'   => 'permit_empty|valid_date[Y-m-d]',
-        'date_ended'     => 'permit_empty|valid_date[Y-m-d]',
-        'certificate'    => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
+        'date_started'   => 'permit_empty|numeric',
+        'date_ended'     => 'permit_empty|string|max_length[10]',
+        'certificate'    => 'permit_empty|max_size[certificate,1024]|ext_in[certificate,pdf]',
     ]);
 
     if (!$validation->withRequest($this->request)->run()) {
@@ -223,24 +245,26 @@ class UserBasicEducationController extends BaseController
     }
 
     // =========================
-    // DATE VALIDATION
+    // YEAR VALIDATION
     // =========================
     $start = $data['date_started'] ?? null;
     $end   = $data['date_ended'] ?? null;
-    $today = date('Y-m-d');
+    $currentYear = (int) date('Y');
 
     $errors = [];
 
-    if ($start && $end && $end < $start) {
-        $errors['date_ended'] = 'End date cannot be earlier than start date.';
+    if ($start && $end && $end !== 'present') {
+        if ((int)$end < (int)$start) {
+            $errors['date_ended'] = 'End year cannot be earlier than start year.';
+        }
     }
 
-    if ($end && $end > $today) {
-        $errors['date_ended'] = 'End date cannot be in the future.';
+    if ($start && (int)$start > $currentYear) {
+        $errors['date_started'] = 'Start year cannot be in the future.';
     }
 
-    if ($start && $start > $today) {
-        $errors['date_started'] = 'Start date cannot be in the future.';
+    if ($end && $end !== 'present' && (int)$end > $currentYear) {
+        $errors['date_ended'] = 'End year cannot be in the future.';
     }
 
     if (!empty($errors)) {
@@ -259,9 +283,9 @@ class UserBasicEducationController extends BaseController
                 ]);
             }
 
-            if ($file->getSize() > (2 * 1024 * 1024)) {
+            if ($file->getSize() > (1 * 1024 * 1024)) {
                 return redirect()->back()->withInput()->with('error', [
-                    'certificate' => 'File size must not exceed 2MB.'
+                    'certificate' => 'File size must not exceed 1MB.'
                 ]);
             }
 
@@ -277,7 +301,6 @@ class UserBasicEducationController extends BaseController
                 mkdir($uploadPath, 0777, true);
             }
 
-            // delete old file
             if (!empty($record['certificate'])) {
                 $oldPath = $uploadPath . $record['certificate'];
                 if (is_file($oldPath)) {
@@ -293,8 +316,8 @@ class UserBasicEducationController extends BaseController
             'school_name'    => $data['school_name'],
             'certification'  => $data['certification'],
             'grade_attained' => $data['grade_attained'] ?? null,
-            'date_started'   => $start,
-            'date_ended'     => $end,
+            'date_started'   => $start ? $start . '-01-01' : null,
+            'date_ended'     => ($end && $end !== 'present') ? $end . '-12-31' : null,
             'certificate'    => $certificateName,
         ]);
 
@@ -305,6 +328,9 @@ class UserBasicEducationController extends BaseController
     return redirect()->to('/applicant/basic-education')
         ->with('success', 'Education updated successfully.');
 }
+
+
+
 
 public function delete($uuid)
 {

@@ -74,7 +74,7 @@
     <script>
     $(document).ready(function() {
         if ($('#description').length) {
-            const maxWords = 200;
+            const maxWords = 300;
             const $textarea = $('#description');
 
             $textarea.trumbowyg({

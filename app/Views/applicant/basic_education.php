@@ -36,7 +36,7 @@
                                     <td>
                                         <?php
                                             if (!empty($edu['certification'])) {
-                                                // show full name for KCPE/KCSE
+                                                
                                                 if ($edu['certification'] === 'KCPE') echo 'Kenya Certificate of Primary Education (KCPE)';
                                                 elseif ($edu['certification'] === 'KCSE') echo 'Kenya Certificate of Secondary Education (KCSE)';
                                                 else echo esc($edu['certification']);
@@ -45,14 +45,16 @@
                                             }
                                         ?>
                                     </td>
-                                    <td>
+                                     <td>
                                         <?php
                                             $start = !empty($edu['date_started']) 
-                                                ? date('M Y', strtotime($edu['date_started'])) 
+                                                ? (int) date('Y', strtotime($edu['date_started'])) 
                                                 : '-';
 
                                             $end = !empty($edu['date_ended']) 
-                                                ? date('M Y', strtotime($edu['date_ended'])) 
+                                                ? ($edu['date_ended'] === 'present' 
+                                                    ? 'Present' 
+                                                    : (int) date('Y', strtotime($edu['date_ended'])))
                                                 : 'Present';
 
                                             echo $start . ' - ' . $end;

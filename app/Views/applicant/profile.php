@@ -77,7 +77,7 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Ethnicity</label>
                         <select class="form-select" name="ethnicity_id" required>
                             <option value="">Select Ethnicity</option>
@@ -90,23 +90,7 @@
                         </select>
                     </div>
 
-                    <!-- ✅ FIXED MARITAL STATUS -->
-                    <div class="col-md-6">
-                        <label class="form-label">Marital Status</label>
-                        <select class="form-select" name="marital_status_id">
-                            <option value="">Select Marital Status</option>
-                            <?php foreach ($maritalStatuses as $status): ?>
-                                <option value="<?= $status['id'] ?>"
-                                    <?= set_select('marital_status_id', $status['id'], ($details['marital_status_id'] ?? '') == $status['id']) ?>>
-                                    <?= esc($status['title']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Country of Birth</label>
                         <select class="form-select" name="country_of_birth_id" required>
                             <option value="">Select Country</option>
@@ -119,7 +103,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-6">
+                     <div class="col-md-4">
                         <label class="form-label">Country of Residence</label>
                         <select class="form-select" name="country_of_residence_id" required>
                             <option value="">Select Country</option>
@@ -131,13 +115,17 @@
                             <?php endforeach; ?>
                         </select>
                     </div>
+
+                   
                 </div>
+
+                
 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label">County of Origin</label>
+                        <label class="form-label">Permanent Address</label>
                         <select class="form-select" name="county_of_origin_id" required>
-                            <option value="">Select County</option>
+                            <option value="">Select Permanent Address</option>
                             <?php foreach ($counties as $county): ?>
                                 <option value="<?= $county['id'] ?>"
                                     <?= set_select('county_of_origin_id', $county['id'], ($details['county_of_origin_id'] ?? '') == $county['id']) ?>>
@@ -148,9 +136,9 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">County of Residence</label>
+                        <label class="form-label">Temporary Address</label>
                         <select class="form-select" name="county_of_residence_id" required>
-                            <option value="">Select County</option>
+                            <option value="">Select Temporary Address</option>
                             <?php foreach ($counties as $county): ?>
                                 <option value="<?= $county['id'] ?>"
                                     <?= set_select('county_of_residence_id', $county['id'], ($details['county_of_residence_id'] ?? '') == $county['id']) ?>>
@@ -162,18 +150,7 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Field of Study</label>
-                        <select class="form-select" name="field_of_study_id" required>
-                            <option value="">Select Field</option>
-                            <?php foreach ($fieldsOfStudy as $field): ?>
-                                <option value="<?= $field['id'] ?>"
-                                    <?= set_select('field_of_study_id', $field['id'], ($details['field_of_study_id'] ?? '') == $field['id']) ?>>
-                                    <?= esc($field['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                   
 
                     <div class="col-md-6">
                         <label class="form-label">Highest Level of Study</label>
@@ -196,20 +173,14 @@
                            name="disability_status"
                            value="1"
                            <?= ($details['disability_status'] ?? 0) ? 'checked' : '' ?>>
-                    <label class="form-check-label">Do you have a disability?</label>
+                    <label class="form-check-label">Are you a PWD?</label>
                 </div>
 
                 <div id="disability_section" style="display:none;">
                     <div class="row mb-3">
+                       
                         <div class="col-md-6">
-                            <label class="form-label">Disability Type</label>
-                            <input type="text"
-                                   class="form-control"
-                                   name="disability_type"
-                                   value="<?= set_value('disability_type', $details['disability_type'] ?? '') ?>">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Disability Number</label>
+                            <label class="form-label">NCPWD No.</label>
                             <input type="text"
                                    class="form-control"
                                    name="disability_number"

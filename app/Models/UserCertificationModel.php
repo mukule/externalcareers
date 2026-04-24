@@ -12,6 +12,7 @@ class UserCertificationModel extends Model
         'uuid',
         'user_id',
         'certification_id',
+        'certifying_body_id',
         'name',
         'attained_date',
         'certificate_file',

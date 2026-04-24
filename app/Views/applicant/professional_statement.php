@@ -8,7 +8,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <h4 class="card-title mb-4">Professional Statement</h4>
+            <h4 class="card-title mb-4">Executive Summary</h4>
 
             <form action="<?= base_url('applicant/professional-statement/store') ?>" method="POST">
                 <?= csrf_field() ?>
@@ -18,7 +18,7 @@
 
                 <!-- Professional Statement -->
                 <div class="mb-3">
-                    <label for="description" class="form-label">Your Professional Statement</label>
+                   
                     <textarea class="form-control"
                               id="description"
                               name="statement"

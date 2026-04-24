@@ -22,7 +22,7 @@
                             <th>Name</th>
                             <th>Certifying Body</th>
                             <th>Membership No</th>
-                            <th>Joined Year</th>
+                            <th>Year Joined</th>
                             <th>Certificate</th>
                             <th>Actions</th>
                         </tr>

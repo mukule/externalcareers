@@ -146,7 +146,7 @@ class UserDetailsController extends BaseController
             $this->userDetailsModel->insert($detailsData);
         }
 
-        return redirect()->back()->with('success', 'Profile saved successfully.');
+        return redirect()->back()->with('success', 'Basic information updated successfully.');
     }
 
     /**
@@ -228,6 +228,6 @@ class UserDetailsController extends BaseController
 
         $this->userDetailsModel->update($details['id'], $updateData);
 
-        return redirect()->back()->with('success', 'Profile updated successfully.');
+        return redirect()->back()->with('success', 'Basic information updated successfully.');
     }
 }

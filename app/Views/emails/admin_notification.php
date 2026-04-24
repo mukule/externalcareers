@@ -31,12 +31,12 @@
         </p>
 
         <p style="margin-top: 10px;">
-            Thank you for being part of the CRVWWDA team.
+            Thank you for being part of the KenGen Recruitment Portal team.
         </p>
 
         <hr style="margin-top: 30px;">
         <p style="font-size: 12px; color: #777;">
-            This is an automated message from CRVWWDA Recruitment Portal. Please do not reply to this email.
+            This is an automated message from KenGen Recruitment Portal. Please do not reply to this email.
         </p>
     </div>
 </body>

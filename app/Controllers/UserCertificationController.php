@@ -5,32 +5,25 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\UserCertificationModel;
 use App\Models\CertifyingBodyModel;
-use App\Models\CertificationModel;
 
 class UserCertificationController extends BaseController
 {
     protected $certModel;
     protected $bodyModel;
-    protected $certificationModel;
 
     public function __construct()
     {
-        $this->certModel          = new UserCertificationModel();
-        $this->bodyModel          = new CertifyingBodyModel();
-        $this->certificationModel = new CertificationModel();
+        $this->certModel = new UserCertificationModel();
+        $this->bodyModel = new CertifyingBodyModel();
     }
 
-    // =========================
-    // LIST
-    // =========================
     public function index()
     {
         $userId = session()->get('user_id');
 
         $certifications = $this->certModel
-            ->select('user_certifications.*, certifications.name AS cert_name, certifying_bodies.name AS body_name')
-            ->join('certifications', 'certifications.id = user_certifications.certification_id', 'left')
-            ->join('certifying_bodies', 'certifying_bodies.id = certifications.certifying_body_id', 'left')
+            ->select('user_certifications.*, certifying_bodies.name AS body_name')
+            ->join('certifying_bodies', 'certifying_bodies.id = user_certifications.certifying_body_id', 'left')
             ->where('user_certifications.user_id', $userId)
             ->orderBy('attained_date', 'DESC')
             ->findAll();
@@ -47,28 +40,13 @@ class UserCertificationController extends BaseController
     // =========================
     public function create()
     {
-        $bodies = $this->bodyModel->where('active', 1)->findAll();
-
         return view('applicant/certification_form', [
             'title'         => 'Add Certification',
             'action'        => base_url('applicant/certification/store'),
             'certification' => null,
-            'bodies'        => $bodies,
-            'currentStep'   => 6
+            'currentStep'   => 6,
+            'bodies'        => $this->bodyModel->where('active', 1)->findAll()
         ]);
-    }
-
-    // =========================
-    // AJAX
-    // =========================
-    public function getCertificationsByBody($bodyId)
-    {
-        $certifications = $this->certificationModel
-            ->where('certifying_body_id', $bodyId)
-            ->where('active', 1)
-            ->findAll();
-
-        return $this->response->setJSON($certifications);
     }
 
     // =========================
@@ -81,46 +59,56 @@ class UserCertificationController extends BaseController
 
         $validation = \Config\Services::validation();
         $validation->setRules([
-            'name'             => 'required|string|max_length[255]',
-            'certification_id' => 'permit_empty|integer',
-            'attained_date'    => 'required|valid_date',
-            'certificate_file' => 'permit_empty',
+            'name'                => 'required|string|max_length[255]',
+            'certifying_body_id'  => 'required|integer',
+            'attained_date'       => 'required|valid_date',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
-        // =========================
-        // FILE UPLOAD (CERTS)
-        // =========================
+        // FILE UPLOAD (1MB MAX)
+        $file = $this->request->getFile('certificate_file');
         $certificatePath = null;
 
-        $file = $this->request->getFile('certificate_file');
-
         if ($file && $file->getError() !== 4) {
-            if ($file->isValid() && !$file->hasMoved()) {
 
-                if ($file->getSize() > (2 * 1024 * 1024)) {
-                    return redirect()
-                        ->back()
-                        ->withInput()
-                        ->with('error', ['certificate_file' => 'File must not exceed 2MB.']);
-                }
-
-                $certificatePath = $file->getRandomName();
-                $file->move(ROOTPATH . 'public/uploads/certs', $certificatePath);
+            if (!$file->isValid()) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate_file' => 'Invalid file upload.'
+                ]);
             }
+
+            if ($file->getSize() > (1 * 1024 * 1024)) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate_file' => 'File must not exceed 1MB.'
+                ]);
+            }
+
+            if ($file->getMimeType() !== 'application/pdf') {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate_file' => 'Only PDF files are allowed.'
+                ]);
+            }
+
+            $uploadPath = ROOTPATH . 'public/uploads/certs/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            $certificatePath = $file->getRandomName();
+            $file->move($uploadPath, $certificatePath);
         }
 
         $this->certModel->insert([
-            'uuid'             => uniqid(),
-            'user_id'          => $userId,
-            'name'             => $data['name'],
-            'certification_id' => $data['certification_id'] ?? null,
-            'attained_date'    => $data['attained_date'],
-            'certificate_file' => $certificatePath,
-            'active'           => 1
+            'uuid'               => uniqid(),
+            'user_id'            => $userId,
+            'name'               => $data['name'],
+            'certifying_body_id' => $data['certifying_body_id'],
+            'attained_date'      => $data['attained_date'],
+            'certificate_file'   => $certificatePath,
+            'active'             => 1
         ]);
 
         return redirect()->to('/applicant/certification')
@@ -135,23 +123,19 @@ class UserCertificationController extends BaseController
         $userId = session()->get('user_id');
 
         $cert = $this->certModel
-            ->select('user_certifications.*, certifications.certifying_body_id')
-            ->join('certifications', 'certifications.id = user_certifications.certification_id', 'left')
-            ->where(['user_certifications.uuid' => $uuid, 'user_certifications.user_id' => $userId])
+            ->where(['uuid' => $uuid, 'user_id' => $userId])
             ->first();
 
         if (!$cert) {
             return redirect()->back()->with('error', 'Certification not found.');
         }
 
-        $bodies = $this->bodyModel->where('active', 1)->findAll();
-
         return view('applicant/certification_form', [
             'title'         => 'Edit Certification',
             'action'        => base_url('applicant/certification/update'),
             'certification' => $cert,
-            'bodies'        => $bodies,
-            'currentStep'   => 6
+            'currentStep'   => 6,
+            'bodies'        => $this->bodyModel->where('active', 1)->findAll()
         ]);
     }
 
@@ -173,10 +157,9 @@ class UserCertificationController extends BaseController
 
         $validation = \Config\Services::validation();
         $validation->setRules([
-            'name'             => 'required|string|max_length[255]',
-            'certification_id' => 'permit_empty|integer',
-            'attained_date'    => 'required|valid_date',
-            'certificate_file' => 'permit_empty',
+            'name'                => 'required|string|max_length[255]',
+            'certifying_body_id'  => 'required|integer',
+            'attained_date'       => 'required|valid_date',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
@@ -188,31 +171,47 @@ class UserCertificationController extends BaseController
             $certificateName = $cert['certificate_file'];
 
             if ($file && $file->getError() !== 4) {
-                if ($file->isValid() && !$file->hasMoved()) {
 
-                    if ($file->getSize() > (2 * 1024 * 1024)) {
-                        return redirect()
-                            ->back()
-                            ->withInput()
-                            ->with('error', ['certificate_file' => 'File must not exceed 2MB.']);
-                    }
-
-                    // delete old file
-                    if (!empty($cert['certificate_file']) &&
-                        file_exists(ROOTPATH . 'public/uploads/certs/' . $cert['certificate_file'])) {
-                        unlink(ROOTPATH . 'public/uploads/certs/' . $cert['certificate_file']);
-                    }
-
-                    $certificateName = $file->getRandomName();
-                    $file->move(ROOTPATH . 'public/uploads/certs', $certificateName);
+                if (!$file->isValid()) {
+                    return redirect()->back()->withInput()->with('error', [
+                        'certificate_file' => 'Invalid file upload.'
+                    ]);
                 }
+
+                if ($file->getSize() > (1 * 1024 * 1024)) {
+                    return redirect()->back()->withInput()->with('error', [
+                        'certificate_file' => 'File must not exceed 1MB.'
+                    ]);
+                }
+
+                if ($file->getMimeType() !== 'application/pdf') {
+                    return redirect()->back()->withInput()->with('error', [
+                        'certificate_file' => 'Only PDF files are allowed.'
+                    ]);
+                }
+
+                $uploadPath = ROOTPATH . 'public/uploads/certs/';
+
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                }
+
+                if (!empty($cert['certificate_file'])) {
+                    $old = $uploadPath . $cert['certificate_file'];
+                    if (is_file($old)) {
+                        unlink($old);
+                    }
+                }
+
+                $certificateName = $file->getRandomName();
+                $file->move($uploadPath, $certificateName);
             }
 
             $this->certModel->update($data['id'], [
-                'name'             => $data['name'],
-                'certification_id' => $data['certification_id'] ?? null,
-                'attained_date'    => $data['attained_date'],
-                'certificate_file' => $certificateName,
+                'name'               => $data['name'],
+                'certifying_body_id' => $data['certifying_body_id'],
+                'attained_date'      => $data['attained_date'],
+                'certificate_file'   => $certificateName,
             ]);
 
         } catch (\Exception $e) {
@@ -235,9 +234,12 @@ class UserCertificationController extends BaseController
             ->first();
 
         if ($cert) {
-            if (!empty($cert['certificate_file']) &&
-                file_exists(ROOTPATH . 'public/uploads/certs/' . $cert['certificate_file'])) {
-                unlink(ROOTPATH . 'public/uploads/certs/' . $cert['certificate_file']);
+
+            if (!empty($cert['certificate_file'])) {
+                $path = ROOTPATH . 'public/uploads/certs/' . $cert['certificate_file'];
+                if (is_file($path)) {
+                    unlink($path);
+                }
             }
 
             $this->certModel->delete($cert['id']);

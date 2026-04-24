@@ -196,40 +196,60 @@ class JobModel extends Model
     // -----------------------
     // Get open jobs by job type
     // -----------------------
-    public function getOpenJobsByType(int $jobTypeId, array $filters = []): array
-    {
-        $now = date('Y-m-d H:i:s');
+  
+    public function getOpenJobs(array $filters = [], $user = null): array
+{
+    $now = date('Y-m-d H:i:s');
 
-        $builder = $this->select('jobs.*, education_levels.name AS minimum_education')
-            ->join('job_specialities', 'job_specialities.job_id = jobs.id', 'left')
-            ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
-            ->where('jobs.job_type_id', $jobTypeId)
-            ->where('jobs.active', 1)
-            ->where('jobs.date_open <=', $now)
-            ->where('jobs.date_close >=', $now);
+    $builder = $this->select('jobs.*, education_levels.name AS minimum_education')
+        ->join('job_specialities', 'job_specialities.job_id = jobs.id', 'left')
+        ->join('education_levels', 'education_levels.id = jobs.min_education_level_id', 'left')
+        ->where('jobs.active', 1)
+        ->where('jobs.date_open <=', $now)
+        ->where('jobs.date_close >=', $now);
 
-        // Apply filters
-        if (!empty($filters['name'])) {
-            $builder->like('jobs.name', $filters['name']);
-        }
-
-        if (!empty($filters['reference_no'])) {
-            $builder->like('jobs.reference_no', $filters['reference_no']);
-        }
-
-        if (!empty($filters['discipline_id'])) {
-            $builder->where('jobs.discipline_id', $filters['discipline_id']);
-        }
-
-        if (!empty($filters['field_id'])) {
-            $builder->where('job_specialities.field_id', $filters['field_id']);
-        }
-
-        return $builder
-            ->groupBy('jobs.id')
-            ->orderBy('jobs.date_open', 'ASC')
-            ->findAll();
+    // =========================
+    // JOB TYPE SECURITY FILTER
+    // =========================
+    if ($user && !empty($user['staff'])) {
+        // STAFF → ONLY internal
+        $builder->where('job_types.name', 'internal');
+    } else {
+        // GUEST + NORMAL USER → EXCLUDE internal
+        $builder->where('job_types.name !=', 'internal');
     }
+
+    // IMPORTANT: ensure job_types is joined
+    $builder->join('job_types', 'job_types.id = jobs.job_type_id', 'left');
+
+    // =========================
+    // APPLY FILTERS
+    // =========================
+    if (!empty($filters['job_type_id'])) {
+        $builder->where('jobs.job_type_id', $filters['job_type_id']);
+    }
+
+    if (!empty($filters['name'])) {
+        $builder->like('jobs.name', $filters['name']);
+    }
+
+    if (!empty($filters['reference_no'])) {
+        $builder->like('jobs.reference_no', $filters['reference_no']);
+    }
+
+    if (!empty($filters['discipline_id'])) {
+        $builder->where('jobs.discipline_id', $filters['discipline_id']);
+    }
+
+    if (!empty($filters['field_id'])) {
+        $builder->where('job_specialities.field_id', $filters['field_id']);
+    }
+
+    return $builder
+        ->groupBy('jobs.id')
+        ->orderBy('jobs.date_open', 'ASC')
+        ->findAll();
+}
 
     // -----------------------
     // Get open jobs by job type and optional discipline

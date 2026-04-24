@@ -7,18 +7,14 @@
     <meta name="description" content="<?= esc($app_name ?? 'CRVWWDA RECRUITMENT PORTAL') ?>" />
     <meta name="author" content="<?= esc($app_name ?? 'CRVWWDA RECRUITMENT PORTAL') ?>" />
     <title><?= esc($app_name ?? 'CRVWWDA RECRUITMENT PORTAL') ?> | <?= esc($title ?? 'Dashboard') ?></title>
-
-   
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-
-    
     <link href="<?= base_url('css/styles.css') ?>" rel="stylesheet" />
-
-    
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
 
    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/trumbowyg@2.28.0/dist/ui/trumbowyg.min.css">
     <link rel="icon" type="image/png" href="<?= base_url('favicon.ico') ?>" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 
     <style>
 
@@ -78,13 +74,14 @@
       <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2.28.0/dist/langs/en.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2.28.0/dist/trumbowyg.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 
     
       
       <script>
 $(document).ready(function() {
-    const maxWords = 200;
+    const maxWords = 500;
 
     function initTrumbowyg(selector) {
         const $textarea = $(selector);

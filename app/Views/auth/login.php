@@ -135,5 +135,23 @@
             }
         }
     </script>
+
+    <script>
+    // Stop auto-dismiss for alerts ONLY on this page
+    document.addEventListener('DOMContentLoaded', function () {
+        const alerts = document.querySelectorAll('.alert');
+
+        alerts.forEach(alert => {
+            // Remove any auto-hide classes or timers
+            alert.classList.add('show');
+
+            // Clone the alert to remove attached event listeners (like auto-dismiss)
+            const newAlert = alert.cloneNode(true);
+            alert.parentNode.replaceChild(newAlert, alert);
+        });
+    });
+</script>
+
+
 </body>
 </html>

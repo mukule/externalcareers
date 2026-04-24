@@ -49,19 +49,70 @@ class Home extends BaseController
 
 public function home()
 {
-    $jobTypeModel = model(\App\Models\JobTypeModel::class);
+    $user = $this->data['user'] ?? null;
 
-    $jobTypes = $jobTypeModel
-        ->select('uuid, name, display_name, banner, icon, description')
+    // =========================
+    // FILTERS
+    // =========================
+    $filters = [
+        'job_type_id'  => $this->request->getGet('job_type_id'),
+        'name'         => $this->request->getGet('name'),
+        'reference_no' => $this->request->getGet('reference_no'),
+        'discipline_id'=> $this->request->getGet('discipline_id'),
+        'field_id'     => $this->request->getGet('field_id'),
+    ];
+
+    // =========================
+    // JOB TYPE VISIBILITY RULE
+    // =========================
+    if ($user && !empty($user['staff'])) {
+
+        // STAFF → FORCE INTERNAL ONLY
+        $internalType = $this->jobTypeModel
+            ->where('name', 'internal')
+            ->first();
+
+        $filters['job_type_id'] = $internalType['id'] ?? 0;
+
+        // Only show internal in dropdown
+        $jobTypes = $this->jobTypeModel
+            ->where(['name' => 'internal', 'active' => 1])
+            ->findAll();
+
+    } else {
+
+        // GUEST OR NORMAL USER → EXCLUDE INTERNAL
+        $jobTypes = $this->jobTypeModel
+            ->where('active', 1)
+            ->where('name !=', 'internal')
+            ->findAll();
+    }
+
+    // =========================
+    // FETCH JOBS
+    // =========================
+    $jobs = $this->jobModel->getOpenJobs($filters, $user);
+
+    // =========================
+    // OTHER DATA
+    // =========================
+    $disciplines = $this->jobDisciplineModel
+        ->where('active', 1)
+        ->findAll();
+
+    $fieldsOfStudy = $this->fieldOfStudyModel
         ->where('active', 1)
         ->findAll();
 
     return view('pages/index', [
-        'title'    => $this->data['app_name'],
-        'jobTypes' => $jobTypes
+        'title'         => $this->data['app_name'],
+        'jobs'          => $jobs,
+        'jobTypes'      => $jobTypes,
+        'disciplines'   => $disciplines,
+        'fieldsOfStudy' => $fieldsOfStudy,
+        'filters'       => $filters,
     ]);
 }
-
 
 
 public function jobDetail($uuid = null)
@@ -114,51 +165,7 @@ public function jobDetail($uuid = null)
 }
 
 
-public function jobsByType($jobTypeUuid = null)
-{
-    if (!$jobTypeUuid) {
-        return redirect()->to('/')->with('error', 'Job type not specified.');
-    }
 
-    // Get job type
-    $jobType = $this->jobTypeModel
-                    ->where('uuid', $jobTypeUuid)
-                    ->where('active', 1)
-                    ->first();
-
-    if (!$jobType) {
-        return redirect()->to('/')->with('error', 'Job type not found.');
-    }
-
-    
-    $filters = [
-        'name'          => $this->request->getGet('name'),
-        'reference_no'  => $this->request->getGet('reference_no'),
-        'discipline_id' => $this->request->getGet('discipline_id'),
-        'field_id'      => $this->request->getGet('field_id'),
-    ];
-
-    // Fetch filtered jobs
-    $openJobs = $this->jobModel->getOpenJobsByType($jobType['id'], $filters);
-
-   
-    $disciplines = $this->jobDisciplineModel
-                        ->where('active', 1)
-                        ->findAll();
-
-    $fieldsOfStudy = $this->fieldOfStudyModel
-                          ->where('active', 1)
-                          ->findAll();
-
-    return view('pages/job_types', [
-        'title'        => $jobType['display_name'] . ' Jobs',
-        'jobType'      => $jobType,
-        'jobs'         => $openJobs,
-        'disciplines'  => $disciplines,
-        'fieldsOfStudy'=> $fieldsOfStudy,
-        'filters'      => $filters, 
-    ]);
-}
 
 
 public function myApplications()

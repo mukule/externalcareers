@@ -14,6 +14,9 @@ class UserWorkExperienceController extends BaseController
         $this->workModel = new UserWorkExperienceModel();
     }
 
+    // =========================
+    // LIST
+    // =========================
     public function index()
     {
         $userId = session()->get('user_id');
@@ -26,20 +29,26 @@ class UserWorkExperienceController extends BaseController
         ]);
     }
 
+    // =========================
+    // CREATE
+    // =========================
     public function create()
     {
         return view('applicant/work_experience_form', [
-            'title'      => 'Add Work Experience',
-            'action'     => base_url('applicant/work-experience/store'),
-            'experience' => null,
+            'title'       => 'Add Work Experience',
+            'action'      => base_url('applicant/work-experience/store'),
+            'experience'  => null,
             'currentStep' => 7
         ]);
     }
 
+    // =========================
+    // STORE
+    // =========================
     public function store()
     {
         $userId = session()->get('user_id');
-        $data = $this->request->getPost();
+        $data   = $this->request->getPost();
 
         $validation = \Config\Services::validation();
         $validation->setRules([
@@ -47,8 +56,8 @@ class UserWorkExperienceController extends BaseController
             'company_address'   => 'permit_empty|string|max_length[255]',
             'company_phone'     => 'permit_empty|string|max_length[50]',
             'position'          => 'required|string|max_length[255]',
-            'start_date'        => 'required|valid_date',
-            'end_date'          => 'permit_empty|valid_date',
+            'start_date'        => 'required',
+            'end_date'          => 'permit_empty',
             'currently_working' => 'permit_empty|in_list[0,1]',
             'responsibilities'  => 'permit_empty|string',
         ]);
@@ -59,34 +68,46 @@ class UserWorkExperienceController extends BaseController
 
         $currentlyWorking = !empty($data['currently_working']) ? 1 : 0;
 
-        $startDate = $data['start_date'];
-        $endDate = $data['end_date'] ?? null;
+        // =========================
+        // NORMALIZE MONTH INPUT
+        // =========================
+        $startDate = !empty($data['start_date'])
+            ? date('Y-m-01', strtotime($data['start_date'] . '-01'))
+            : null;
 
-        // DATE LOGIC VALIDATION
-        if (!$currentlyWorking) {
-            if (empty($endDate)) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', ['end_date' => 'End date is required when not currently working.']);
-            }
+        $endDate = null;
 
-            if (strtotime($endDate) < strtotime($startDate)) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', ['end_date' => 'End date cannot be earlier than start date.']);
-            }
-        } else {
-            $endDate = null;
+        if (!$currentlyWorking && !empty($data['end_date'])) {
+            $endDate = date('Y-m-t', strtotime($data['end_date'] . '-01'));
         }
 
-        // FILE UPLOAD (CERTS)
+        // =========================
+        // VALIDATION (LOGIC)
+        // =========================
+        if (!$currentlyWorking && empty($endDate)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', ['end_date' => 'End date is required when not currently working.']);
+        }
+
+        if ($endDate && $startDate && $endDate < $startDate) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', ['end_date' => 'End date cannot be earlier than start date.']);
+        }
+
+        // =========================
+        // FILE UPLOAD (2MB)
+        // =========================
         $referenceFile = null;
         $file = $this->request->getFile('reference_letter');
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
-            if ($file->getSize() > 2048 * 1024) {
-                return redirect()->back()->withInput()
-                    ->with('error', ['reference_letter' => 'File size must not exceed 2MB']);
+
+            if ($file->getSize() > 2 * 1024 * 1024) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', ['reference_letter' => 'File must not exceed 2MB']);
             }
 
             $referenceFile = $file->getRandomName();
@@ -112,9 +133,13 @@ class UserWorkExperienceController extends BaseController
             ->with('success', 'Work experience added successfully.');
     }
 
+    // =========================
+    // EDIT
+    // =========================
     public function edit($uuid)
     {
         $userId = session()->get('user_id');
+
         $experience = $this->workModel->where([
             'uuid' => $uuid,
             'user_id' => $userId
@@ -125,17 +150,20 @@ class UserWorkExperienceController extends BaseController
         }
 
         return view('applicant/work_experience_form', [
-            'title'      => 'Edit Work Experience',
-            'action'     => base_url('applicant/work-experience/update'),
-            'experience' => $experience,
+            'title'       => 'Edit Work Experience',
+            'action'      => base_url('applicant/work-experience/update'),
+            'experience'  => $experience,
             'currentStep' => 7
         ]);
     }
 
+    // =========================
+    // UPDATE
+    // =========================
     public function update()
     {
         $userId = session()->get('user_id');
-        $data = $this->request->getPost();
+        $data   = $this->request->getPost();
 
         $experience = $this->workModel->where([
             'id' => $data['id'],
@@ -152,8 +180,8 @@ class UserWorkExperienceController extends BaseController
             'company_address'   => 'permit_empty|string|max_length[255]',
             'company_phone'     => 'permit_empty|string|max_length[50]',
             'position'          => 'required|string|max_length[255]',
-            'start_date'        => 'required|valid_date',
-            'end_date'          => 'permit_empty|valid_date',
+            'start_date'        => 'required',
+            'end_date'          => 'permit_empty',
             'currently_working' => 'permit_empty|in_list[0,1]',
             'responsibilities'  => 'permit_empty|string',
         ]);
@@ -164,33 +192,46 @@ class UserWorkExperienceController extends BaseController
 
         $currentlyWorking = !empty($data['currently_working']) ? 1 : 0;
 
-        $startDate = $data['start_date'];
-        $endDate = $data['end_date'] ?? null;
+        // =========================
+        // NORMALIZE MONTH INPUT
+        // =========================
+        $startDate = !empty($data['start_date'])
+            ? date('Y-m-01', strtotime($data['start_date'] . '-01'))
+            : null;
 
-        if (!$currentlyWorking) {
-            if (empty($endDate)) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', ['end_date' => 'End date is required when not currently working.']);
-            }
+        $endDate = null;
 
-            if (strtotime($endDate) < strtotime($startDate)) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', ['end_date' => 'End date cannot be earlier than start date.']);
-            }
-        } else {
-            $endDate = null;
+        if (!$currentlyWorking && !empty($data['end_date'])) {
+            $endDate = date('Y-m-t', strtotime($data['end_date'] . '-01'));
         }
 
-        // FILE UPDATE (CERTS)
+        // =========================
+        // LOGIC VALIDATION
+        // =========================
+        if (!$currentlyWorking && empty($endDate)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', ['end_date' => 'End date is required when not currently working.']);
+        }
+
+        if ($endDate && $startDate && $endDate < $startDate) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', ['end_date' => 'End date cannot be earlier than start date.']);
+        }
+
+        // =========================
+        // FILE UPDATE
+        // =========================
         $referenceFile = $experience['reference_file'] ?? null;
         $file = $this->request->getFile('reference_letter');
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
-            if ($file->getSize() > 2048 * 1024) {
-                return redirect()->back()->withInput()
-                    ->with('error', ['reference_letter' => 'File size must not exceed 2MB']);
+
+            if ($file->getSize() > 1 * 1024 * 1024) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', ['reference_letter' => 'File must not exceed 2MB']);
             }
 
             if ($referenceFile && file_exists(ROOTPATH . 'public/uploads/certs/' . $referenceFile)) {
@@ -217,6 +258,9 @@ class UserWorkExperienceController extends BaseController
             ->with('success', 'Work experience updated successfully.');
     }
 
+    // =========================
+    // DELETE
+    // =========================
     public function delete($uuid)
     {
         $userId = session()->get('user_id');
@@ -227,6 +271,7 @@ class UserWorkExperienceController extends BaseController
         ])->first();
 
         if ($experience) {
+
             if (!empty($experience['reference_file'])) {
                 $path = ROOTPATH . 'public/uploads/certs/' . $experience['reference_file'];
                 if (file_exists($path)) {

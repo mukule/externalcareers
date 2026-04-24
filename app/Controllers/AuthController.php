@@ -266,7 +266,7 @@ public function register()
     $activationLink = base_url("/activate/{$activationToken}");
     $message = view('emails/welcome_activation', [
         'first_name'     => $this->request->getPost('first_name'),
-        'appName'        => 'Kengen Recruitment Portal',
+        'appName'        => 'KenGen Recruitment Portal',
         'activationLink' => $activationLink,
     ]);
 
@@ -284,7 +284,7 @@ public function register()
 
     return redirect()->to('/login')->with(
         'success',
-        'Account created successfully. Please check your email to activate your account before logging in.'
+        'Registration successful. Check your email to activate your account.'
     );
 }
 

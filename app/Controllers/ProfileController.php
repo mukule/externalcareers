@@ -152,7 +152,7 @@ class ProfileController extends BaseController
         if (empty($statementText)) {
             return redirect()->back()
                              ->withInput()
-                             ->with('error', 'Professional statement cannot be empty.');
+                             ->with('error', 'Executive summary cannot be empty.');
         }
 
         $existing = $this->professionalStatementModel
@@ -173,7 +173,7 @@ class ProfileController extends BaseController
         }
 
         return redirect()->to('/applicant/professional-statement')
-                         ->with('success', 'Professional statement saved successfully.');
+                         ->with('success', 'Executive summary saved successfully.');
     }
 
 

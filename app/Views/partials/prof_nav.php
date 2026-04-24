@@ -15,7 +15,7 @@ $stepUrls = [
 
 $steps = [
     1 => 'Basic Details',
-    2 => 'Professional Statement',
+    2 => 'Executive Summary',
     3 => 'Basic Education',
     4 => 'College/University',
     5 => 'Memberships',

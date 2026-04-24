@@ -46,13 +46,13 @@
 <body>
     <div class="container">
         <h2>Welcome, <?= esc($first_name) ?>!</h2>
-        <p>Thank you for registering on <?= esc($appName ?? 'Kengen Recruitment Portal') ?>.</p>
+        <p>Thank you for registering on <?= esc($appName ?? 'KenGen Recruitment Portal') ?>.</p>
         <p>Before you can log in and apply for jobs, you need to activate your account.</p>
         <a href="<?= esc($activationLink) ?>" class="button">Activate My Account</a>
         <p>If the button doesn’t work, copy and paste the following link into your browser:</p>
         <p><a href="<?= esc($activationLink) ?>"><?= esc($activationLink) ?></a></p>
         <div class="footer">
-            &copy; <?= date('Y') ?> <?= esc($appName ?? 'Kengen Recruitment Portal') ?>. All rights reserved.
+            &copy; <?= date('Y') ?> <?= esc($appName ?? 'KenGen Recruitment Portal') ?>. All rights reserved.
         </div>
     </div>
 </body>

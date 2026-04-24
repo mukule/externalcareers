@@ -33,12 +33,24 @@
                                     <td><?= $i + 1 ?></td>
                                     <td><?= esc($exp['company_name']) ?></td>
                                     <td><?= esc($exp['position']) ?></td>
-                                    <td>
-                                        <?= esc($exp['start_date'] ?? 'N/A') ?> -  
-                                        <?php if ($exp['currently_working'] == 1): ?>
+                                   <td>
+                                        <?php
+                                            $start = !empty($exp['start_date'])
+                                                ? date('M Y', strtotime($exp['start_date']))
+                                                : 'N/A';
+                                        ?>
+
+                                        <?= esc($start) ?> -
+
+                                        <?php if (!empty($exp['currently_working']) && $exp['currently_working'] == 1): ?>
                                             <span class="badge bg-success p-2">Current Job</span>
                                         <?php else: ?>
-                                            <?= esc($exp['end_date'] ?? 'N/A') ?>
+                                            <?php
+                                                $end = !empty($exp['end_date'])
+                                                    ? date('M Y', strtotime($exp['end_date']))
+                                                    : 'N/A';
+                                            ?>
+                                            <?= esc($end) ?>
                                         <?php endif; ?>
                                     </td>
                                     <td>

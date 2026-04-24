@@ -17,9 +17,6 @@ class UserHigherEducationController extends BaseController
         $this->levelModel     = new EducationLevelModel();
     }
 
-    /**
-     * List all higher education records
-     */
     public function index()
     {
         $userId = session()->get('user_id');
@@ -28,26 +25,19 @@ class UserHigherEducationController extends BaseController
             'title'       => 'Higher Education',
             'currentStep' => 4,
             'educations'  => $this->educationModel->getByUserId($userId),
-            'levels'      => $this->levelModel
-                ->where('active', 1)
-                ->orderBy('index', 'ASC')
-                ->findAll(),
+            'levels'      => $this->levelModel->where('active', 1)
+                                ->orderBy('index', 'ASC')->findAll(),
         ]);
     }
 
-    /**
-     * Show create form
-     */
     public function create()
     {
         return view('applicant/higher_education_form', [
             'title'       => 'Add Higher Education',
             'currentStep' => 4,
             'action'      => base_url('applicant/higher-education/store'),
-            'levels'      => $this->levelModel
-                ->where('active', 1)
-                ->orderBy('index', 'ASC')
-                ->findAll(),
+            'levels'      => $this->levelModel->where('active', 1)
+                                ->orderBy('index', 'ASC')->findAll(),
             'classes' => [
                 'First Class',
                 'Second Class Upper',
@@ -60,7 +50,7 @@ class UserHigherEducationController extends BaseController
     }
 
     /**
-     * Store record
+     * STORE
      */
     public function store()
     {
@@ -73,57 +63,66 @@ class UserHigherEducationController extends BaseController
             'course_name'        => 'required|string|max_length[255]',
             'education_level_id' => 'required|integer',
             'class_attained'     => 'permit_empty|string|max_length[50]',
-            'date_started'       => 'permit_empty|valid_date[Y-m-d]',
-            'date_ended'         => 'permit_empty|valid_date[Y-m-d]',
-            'certificate'        => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
+            'date_started'       => 'permit_empty|numeric|exact_length[4]',
+            'date_ended'         => 'permit_empty|string|max_length[10]',
+            'certificate'        => 'permit_empty|max_size[certificate,1024]|ext_in[certificate,pdf]',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
-        // =========================
-        // DATE VALIDATION
-        // =========================
         $start = $data['date_started'] ?? null;
         $end   = $data['date_ended'] ?? null;
-        $today = date('Y-m-d');
+        $currentYear = (int) date('Y');
 
         $errors = [];
 
-        if ($start && $end && strtotime($end) < strtotime($start)) {
-            $errors['date_ended'] = 'End date cannot be earlier than start date.';
+        if ($start && (int)$start > $currentYear) {
+            $errors['date_started'] = 'Start year cannot be in the future.';
         }
 
-        if ($end && strtotime($end) > strtotime($today)) {
-            $errors['date_ended'] = 'End date cannot be in the future.';
+        if ($end && $end !== 'present' && (int)$end > $currentYear) {
+            $errors['date_ended'] = 'End year cannot be in the future.';
         }
 
-        if (!empty($errors)) {
+        if ($start && $end && $end !== 'present' && (int)$end < (int)$start) {
+            $errors['date_ended'] = 'End year cannot be earlier than start year.';
+        }
+
+        if ($errors) {
             return redirect()->back()->withInput()->with('error', $errors);
         }
 
-        // =========================
-        // FILE UPLOAD (CERTS)
-        // =========================
+        // FILE (1MB MAX)
         $certificatePath = null;
-
         $file = $this->request->getFile('certificate');
 
         if ($file && $file->getError() !== 4) {
-            if ($file->isValid() && !$file->hasMoved()) {
 
-                // extra safety (2MB)
-                if ($file->getSize() > (2 * 1024 * 1024)) {
-                    return redirect()
-                        ->back()
-                        ->withInput()
-                        ->with('error', ['certificate' => 'File must not exceed 2MB.']);
-                }
-
-                $certificatePath = $file->getRandomName();
-                $file->move(ROOTPATH . 'public/uploads/certs', $certificatePath);
+            if (!$file->isValid()) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Invalid file upload.'
+                ]);
             }
+
+            if ($file->getSize() > (1 * 1024 * 1024)) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'File must not exceed 1MB.'
+                ]);
+            }
+
+            if ($file->getMimeType() !== 'application/pdf') {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Only PDF files allowed.'
+                ]);
+            }
+
+            $path = ROOTPATH . 'public/uploads/certs/';
+            if (!is_dir($path)) mkdir($path, 0777, true);
+
+            $certificatePath = $file->getRandomName();
+            $file->move($path, $certificatePath);
         }
 
         $this->educationModel->insert([
@@ -132,8 +131,11 @@ class UserHigherEducationController extends BaseController
             'course_name'        => $data['course_name'],
             'education_level_id' => $data['education_level_id'],
             'class_attained'     => $data['class_attained'] ?? null,
-            'date_started'       => $data['date_started'] ?? null,
-            'date_ended'         => $data['date_ended'] ?? null,
+
+            // YEARS → FULL DATE
+            'date_started'       => $start ? $start . '-01-01' : null,
+            'date_ended'         => ($end && $end !== 'present') ? $end . '-12-31' : null,
+
             'certificate'        => $certificatePath,
             'active'             => 1,
         ]);
@@ -143,7 +145,7 @@ class UserHigherEducationController extends BaseController
     }
 
     /**
-     * Show edit form
+     * EDIT
      */
     public function edit($uuid)
     {
@@ -154,7 +156,18 @@ class UserHigherEducationController extends BaseController
             ->first();
 
         if (!$record) {
-            return redirect()->back()->with('error', 'Education record not found.');
+            return redirect()->back()->with('error', 'Record not found.');
+        }
+
+        // CONVERT DATE → YEAR FOR UI
+        if (!empty($record['date_started'])) {
+            $record['date_started'] = date('Y', strtotime($record['date_started']));
+        }
+
+        if (!empty($record['date_ended'])) {
+            $record['date_ended'] = date('Y', strtotime($record['date_ended']));
+        } else {
+            $record['date_ended'] = 'present';
         }
 
         return view('applicant/higher_education_form', [
@@ -162,11 +175,9 @@ class UserHigherEducationController extends BaseController
             'currentStep' => 4,
             'action'      => base_url('applicant/higher-education/update'),
             'edu'         => $record,
-            'levels'      => $this->levelModel
-                ->where('active', 1)
-                ->orderBy('index', 'ASC')
-                ->findAll(),
-            'classes' => [
+            'levels'      => $this->levelModel->where('active', 1)
+                                ->orderBy('index', 'ASC')->findAll(),
+            'classes'     => [
                 'First Class',
                 'Second Class Upper',
                 'Second Class Lower',
@@ -178,7 +189,7 @@ class UserHigherEducationController extends BaseController
     }
 
     /**
-     * Update record
+     * UPDATE
      */
     public function update()
     {
@@ -190,116 +201,78 @@ class UserHigherEducationController extends BaseController
             ->first();
 
         if (!$record) {
-            return redirect()->back()->withInput()->with('error', 'Education record not found.');
+            return redirect()->back()->withInput()->with('error', 'Record not found.');
         }
 
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'institution_name'   => 'required|string|max_length[255]',
-            'course_name'        => 'required|string|max_length[255]',
-            'education_level_id' => 'required|integer',
-            'class_attained'     => 'permit_empty|string|max_length[50]',
-            'date_started'       => 'permit_empty|valid_date[Y-m-d]',
-            'date_ended'         => 'permit_empty|valid_date[Y-m-d]',
-            'certificate'        => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
-        ]);
-
-        if (!$validation->withRequest($this->request)->run()) {
-            return redirect()->back()->withInput()->with('error', $validation->getErrors());
-        }
-
-        // =========================
-        // DATE VALIDATION
-        // =========================
         $start = $data['date_started'] ?? null;
         $end   = $data['date_ended'] ?? null;
-        $today = date('Y-m-d');
+        $currentYear = (int) date('Y');
 
         $errors = [];
 
-        if ($start && $end && strtotime($end) < strtotime($start)) {
-            $errors['date_ended'] = 'End date cannot be earlier than start date.';
+        if ($start && (int)$start > $currentYear) {
+            $errors['date_started'] = 'Start year cannot be in future.';
         }
 
-        if ($end && strtotime($end) > strtotime($today)) {
-            $errors['date_ended'] = 'End date cannot be in the future.';
+        if ($end && $end !== 'present' && (int)$end > $currentYear) {
+            $errors['date_ended'] = 'End year cannot be in future.';
         }
 
-        if (!empty($errors)) {
+        if ($start && $end && $end !== 'present' && (int)$end < (int)$start) {
+            $errors['date_ended'] = 'End year invalid.';
+        }
+
+        if ($errors) {
             return redirect()->back()->withInput()->with('error', $errors);
         }
 
-        try {
-            $file = $this->request->getFile('certificate');
-            $certificateName = $record['certificate'];
+        $file = $this->request->getFile('certificate');
+        $certificateName = $record['certificate'];
 
-            if ($file && $file->getError() !== 4) {
-                if ($file->isValid() && !$file->hasMoved()) {
+        if ($file && $file->getError() !== 4) {
 
-                    if ($file->getSize() > (2 * 1024 * 1024)) {
-                        return redirect()
-                            ->back()
-                            ->withInput()
-                            ->with('error', ['certificate' => 'File must not exceed 2MB.']);
-                    }
-
-                    // delete old
-                    if (!empty($record['certificate']) &&
-                        file_exists(ROOTPATH . 'public/uploads/certs/' . $record['certificate'])) {
-                        unlink(ROOTPATH . 'public/uploads/certs/' . $record['certificate']);
-                    }
-
-                    $certificateName = $file->getRandomName();
-                    $file->move(ROOTPATH . 'public/uploads/certs', $certificateName);
-                }
+            if (!$file->isValid()) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Invalid file upload.'
+                ]);
             }
 
-            $this->educationModel->update($data['id'], [
-                'institution_name'   => $data['institution_name'],
-                'course_name'        => $data['course_name'],
-                'education_level_id' => $data['education_level_id'],
-                'class_attained'     => $data['class_attained'] ?? null,
-                'date_started'       => $data['date_started'] ?? null,
-                'date_ended'         => $data['date_ended'] ?? null,
-                'certificate'        => $certificateName,
-            ]);
-
-        } catch (\Exception $e) {
-            return redirect()->back()->withInput()->with('error', $e->getMessage());
-        }
-
-        return redirect()->to('/applicant/higher-education')
-            ->with('success', 'Education updated successfully.');
-    }
-
-    /**
-     * Delete record
-     */
-    public function delete($uuid)
-    {
-        $userId = session()->get('user_id');
-
-        $record = $this->educationModel
-            ->where(['uuid' => $uuid, 'user_id' => $userId])
-            ->first();
-
-        if (!$record) {
-            return redirect()->back()->with('error', 'Education record not found.');
-        }
-
-        try {
-            if (!empty($record['certificate']) &&
-                file_exists(ROOTPATH . 'public/uploads/certs/' . $record['certificate'])) {
-                unlink(ROOTPATH . 'public/uploads/certs/' . $record['certificate']);
+            if ($file->getSize() > (1 * 1024 * 1024)) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'File must not exceed 1MB.'
+                ]);
             }
 
-            $this->educationModel->delete($record['id']);
+            if ($file->getMimeType() !== 'application/pdf') {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Only PDF files allowed.'
+                ]);
+            }
 
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            $path = ROOTPATH . 'public/uploads/certs/';
+            if (!is_dir($path)) mkdir($path, 0777, true);
+
+            if (!empty($record['certificate']) && file_exists($path . $record['certificate'])) {
+                unlink($path . $record['certificate']);
+            }
+
+            $certificateName = $file->getRandomName();
+            $file->move($path, $certificateName);
         }
 
+        $this->educationModel->update($data['id'], [
+            'institution_name'   => $data['institution_name'],
+            'course_name'        => $data['course_name'],
+            'education_level_id' => $data['education_level_id'],
+            'class_attained'     => $data['class_attained'] ?? null,
+
+            'date_started'       => $start ? $start . '-01-01' : null,
+            'date_ended'         => ($end && $end !== 'present') ? $end . '-12-31' : null,
+
+            'certificate'        => $certificateName,
+        ]);
+
         return redirect()->to('/applicant/higher-education')
-            ->with('success', 'Education record deleted successfully.');
+            ->with('success', 'Updated successfully.');
     }
 }

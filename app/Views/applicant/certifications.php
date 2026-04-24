@@ -32,7 +32,6 @@
                         <tr>
                             <th>#</th>
                             <th>Title</th>
-                            <th>Certification</th>
                             <th>Certifying Body</th>
                             <th>Attained Date</th>
                             <th>File</th>
@@ -45,7 +44,6 @@
                                 <tr>
                                     <td><?= $i + 1 ?></td>
                                     <td><?= esc($cert['name']) ?></td>
-                                    <td><?= esc($cert['cert_name'] ?? 'N/A') ?></td>
                                     <td><?= esc($cert['body_name'] ?? 'N/A') ?></td>
                                     <td><?= !empty($cert['attained_date']) ? date('M Y', strtotime($cert['attained_date'])) : 'N/A' ?></td>
                                     <td>

@@ -15,13 +15,13 @@ class UserEducationController extends BaseController
 
     public function __construct()
     {
-        $this->educationModel   = new UserEducationModel();
-        $this->levelModel       = new EducationLevelModel();
+        $this->educationModel    = new UserEducationModel();
+        $this->levelModel        = new EducationLevelModel();
         $this->fieldOfStudyModel = new FieldOfStudyModel();
     }
 
     /**
-     * List all education records
+     * LIST
      */
     public function index()
     {
@@ -35,31 +35,19 @@ class UserEducationController extends BaseController
     }
 
     /**
-     * Create form
+     * CREATE
      */
     public function create()
     {
-        $levels = $this->levelModel
-            ->where('active', 1)
-            ->orderBy('index', 'ASC')
-            ->findAll();
-
-        $certifications = [
-            '8-4-4' => ['KCPE', 'KCSE'],
-            'CBC'   => ['CBC Primary Assessment', 'CBC Junior Secondary', 'CBC Senior Secondary']
-        ];
-
-        $fieldsOfStudy = $this->fieldOfStudyModel
-            ->where('active', 1)
-            ->orderBy('name', 'ASC')
-            ->findAll();
-
         return view('applicant/education_form', [
             'title'           => 'Add New Education',
             'action'          => base_url('applicant/education/store'),
-            'levels'          => $levels,
-            'certifications'  => $certifications,
-            'fieldsOfStudy'   => $fieldsOfStudy,
+            'levels'          => $this->levelModel->where('active', 1)->orderBy('index', 'ASC')->findAll(),
+            'certifications'  => [
+                '8-4-4' => ['KCPE', 'KCSE'],
+                'CBC'   => ['CBC Primary', 'CBC Junior', 'CBC Senior']
+            ],
+            'fieldsOfStudy'   => $this->fieldOfStudyModel->where('active', 1)->orderBy('name', 'ASC')->findAll(),
             'currentStep'     => 3
         ]);
     }
@@ -73,6 +61,7 @@ class UserEducationController extends BaseController
         $data   = $this->request->getPost();
 
         $validation = \Config\Services::validation();
+
         $validation->setRules([
             'level_id'    => 'required|integer',
             'institution' => 'required|string|max_length[255]',
@@ -80,24 +69,25 @@ class UserEducationController extends BaseController
             'grade'       => 'permit_empty|string|max_length[50]',
             'start_year'  => 'permit_empty|integer|exact_length[4]',
             'end_year'    => 'permit_empty|integer|exact_length[4]',
-            'certificate' => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
+            'certificate' => 'permit_empty|max_size[certificate,1024]|ext_in[certificate,pdf]',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
             return redirect()->back()->withInput()->with('error', $validation->getErrors());
         }
 
-        // =========================
-        // DATE VALIDATION
-        // =========================
-        $startYear  = (int) ($data['start_year'] ?? 0);
-        $endYear    = (int) ($data['end_year'] ?? 0);
+        $startYear   = (int) ($data['start_year'] ?? 0);
+        $endYear     = (int) ($data['end_year'] ?? 0);
         $currentYear = (int) date('Y');
 
         $errors = [];
 
         if ($startYear && $endYear && $endYear < $startYear) {
             $errors['end_year'] = 'End year cannot be earlier than start year.';
+        }
+
+        if ($startYear && $startYear > $currentYear) {
+            $errors['start_year'] = 'Start year cannot be in the future.';
         }
 
         if ($endYear && $endYear > $currentYear) {
@@ -108,25 +98,26 @@ class UserEducationController extends BaseController
             return redirect()->back()->withInput()->with('error', $errors);
         }
 
-        // =========================
-        // FILE UPLOAD
-        // =========================
+        // FILE UPLOAD (1MB max)
         $certificatePath = null;
-
         $file = $this->request->getFile('certificate');
 
         if ($file && $file->getError() !== 4) {
-            if ($file->isValid() && !$file->hasMoved()) {
 
-                if ($file->getSize() > (2 * 1024 * 1024)) {
-                    return redirect()->back()->withInput()->with('error', [
-                        'certificate' => 'File must not exceed 2MB.'
-                    ]);
-                }
-
-                $certificatePath = $file->getRandomName();
-                $file->move(ROOTPATH . 'public/uploads/certs', $certificatePath);
+            if (!$file->isValid()) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'Invalid file upload.'
+                ]);
             }
+
+            if ($file->getSize() > (1024 * 1024)) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'File must not exceed 1MB.'
+                ]);
+            }
+
+            $certificatePath = $file->getRandomName();
+            $file->move(ROOTPATH . 'public/uploads/certs', $certificatePath);
         }
 
         $this->educationModel->insert([
@@ -142,7 +133,8 @@ class UserEducationController extends BaseController
             'active'      => 1,
         ]);
 
-        return redirect()->to('/applicant/education')->with('success', 'Education added successfully.');
+        return redirect()->to('/applicant/education')
+            ->with('success', 'Education added successfully.');
     }
 
     /**
@@ -160,23 +152,16 @@ class UserEducationController extends BaseController
             return redirect()->back()->with('error', 'Education record not found.');
         }
 
-        $certifications = [
-            '8-4-4 System' => ['KCPE', 'KCSE'],
-            'CBC System'   => ['Grade 6', 'Grade 9', 'Grade 12']
-        ];
-
-        $fieldsOfStudy = $this->fieldOfStudyModel
-            ->where('active', 1)
-            ->orderBy('name', 'ASC')
-            ->findAll();
-
         return view('applicant/education_form', [
             'title'          => 'Edit Education',
             'action'         => base_url('applicant/education/update'),
-            'levels'         => $this->levelModel->where('active', 1)->orderBy('index', 'ASC')->findAll(),
             'edu'            => $education,
-            'certifications' => $certifications,
-            'fieldsOfStudy'  => $fieldsOfStudy,
+            'levels'         => $this->levelModel->where('active', 1)->orderBy('index', 'ASC')->findAll(),
+            'certifications' => [
+                '8-4-4' => ['KCPE', 'KCSE'],
+                'CBC'   => ['CBC Primary', 'CBC Junior', 'CBC Senior']
+            ],
+            'fieldsOfStudy'  => $this->fieldOfStudyModel->where('active', 1)->orderBy('name', 'ASC')->findAll(),
             'currentStep'    => 3
         ]);
     }
@@ -197,67 +182,41 @@ class UserEducationController extends BaseController
             return redirect()->back()->with('error', 'Education record not found.');
         }
 
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'level_id'    => 'required|integer',
-            'institution' => 'required|string|max_length[255]',
-            'course'      => 'required|string|max_length[255]',
-            'grade'       => 'permit_empty|string|max_length[50]',
-            'start_year'  => 'permit_empty|integer|exact_length[4]',
-            'end_year'    => 'permit_empty|integer|exact_length[4]',
-            'certificate' => 'permit_empty|max_size[certificate,2048]|ext_in[certificate,pdf]',
-        ]);
-
-        if (!$validation->withRequest($this->request)->run()) {
-            return redirect()->back()->withInput()->with('error', $validation->getErrors());
-        }
-
-        // =========================
-        // DATE VALIDATION
-        // =========================
-        $startYear  = (int) ($data['start_year'] ?? 0);
-        $endYear    = (int) ($data['end_year'] ?? 0);
+        $startYear   = (int) ($data['start_year'] ?? 0);
+        $endYear     = (int) ($data['end_year'] ?? 0);
         $currentYear = (int) date('Y');
 
-        $errors = [];
-
         if ($startYear && $endYear && $endYear < $startYear) {
-            $errors['end_year'] = 'End year cannot be earlier than start year.';
+            return redirect()->back()->withInput()->with('error', [
+                'end_year' => 'End year cannot be earlier than start year.'
+            ]);
         }
 
         if ($endYear && $endYear > $currentYear) {
-            $errors['end_year'] = 'End year cannot be in the future.';
+            return redirect()->back()->withInput()->with('error', [
+                'end_year' => 'End year cannot be in the future.'
+            ]);
         }
 
-        if (!empty($errors)) {
-            return redirect()->back()->withInput()->with('error', $errors);
-        }
-
-        // =========================
-        // FILE UPDATE
-        // =========================
+        // FILE (1MB max)
+        $file = $this->request->getFile('certificate');
         $certificateName = $record['certificate'];
 
-        $file = $this->request->getFile('certificate');
-
         if ($file && $file->getError() !== 4) {
-            if ($file->isValid() && !$file->hasMoved()) {
 
-                if ($file->getSize() > (2 * 1024 * 1024)) {
-                    return redirect()->back()->withInput()->with('error', [
-                        'certificate' => 'File must not exceed 2MB.'
-                    ]);
-                }
-
-                // delete old file
-                if (!empty($record['certificate']) &&
-                    file_exists(ROOTPATH . 'public/uploads/certs/' . $record['certificate'])) {
-                    unlink(ROOTPATH . 'public/uploads/certs/' . $record['certificate']);
-                }
-
-                $certificateName = $file->getRandomName();
-                $file->move(ROOTPATH . 'public/uploads/certs', $certificateName);
+            if ($file->getSize() > (1024 * 1024)) {
+                return redirect()->back()->withInput()->with('error', [
+                    'certificate' => 'File must not exceed 1MB.'
+                ]);
             }
+
+            if (!empty($record['certificate']) &&
+                file_exists(ROOTPATH . 'public/uploads/certs/' . $record['certificate'])) {
+                unlink(ROOTPATH . 'public/uploads/certs/' . $record['certificate']);
+            }
+
+            $certificateName = $file->getRandomName();
+            $file->move(ROOTPATH . 'public/uploads/certs', $certificateName);
         }
 
         $this->educationModel->update($data['id'], [
@@ -271,7 +230,8 @@ class UserEducationController extends BaseController
             'certificate' => $certificateName,
         ]);
 
-        return redirect()->to('/applicant/education')->with('success', 'Education updated successfully.');
+        return redirect()->to('/applicant/education')
+            ->with('success', 'Education updated successfully.');
     }
 
     /**
@@ -296,6 +256,7 @@ class UserEducationController extends BaseController
 
         $this->educationModel->delete($record['id']);
 
-        return redirect()->to('/applicant/education')->with('success', 'Education deleted successfully.');
+        return redirect()->to('/applicant/education')
+            ->with('success', 'Education deleted successfully.');
     }
 }

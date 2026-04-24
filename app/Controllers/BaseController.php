@@ -45,8 +45,8 @@ abstract class BaseController extends Controller
 
       
         $appConfig = config('App');
-        $this->data['app_name']       = env('app.name', $appConfig->name ?? 'Kengen Careers Portal');
-        $this->data['app_short_name'] = env('app.short_name', 'Kengen Careers Portal');
+        $this->data['app_name']       = env('app.name', $appConfig->name ?? 'KenGen Careers Portal');
+        $this->data['app_short_name'] = env('app.short_name', 'KenGen Careers Portal');
         $this->data['footer_text']    = '© ' . date('Y') . ' ' . $this->data['app_name'] . '. All Rights Reserved.';
         $this->data['base_url']       = base_url();
 
